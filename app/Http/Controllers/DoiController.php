@@ -972,7 +972,7 @@ class DoiController extends Controller
     {
         $barcode = $request->input('BARCODE');
 
-        $check1 = $result = DB::table('erasystem_2012.barcode_pellet')
+        $check1  = DB::table('erasystem_2012.barcode_pellet')
         ->join('erasystem_2012.barcode_pellet_det', function ($join) {
             $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
         })

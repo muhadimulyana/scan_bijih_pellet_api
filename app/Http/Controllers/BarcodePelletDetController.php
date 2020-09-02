@@ -38,6 +38,37 @@ class BarcodePelletDetController extends Controller
         return response()->json($out, 200, [], JSON_NUMERIC_CHECK);
     }
 
+    public function checkBarcode(Request $request)
+    {
+        $barcode = $request->input('BARCODE');
+
+        $check1 = DB::table('erasystem_2012.barcode_pellet')
+        ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+        })
+        ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
+        ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
+        ->first();
+
+        if($check1){
+            $out = [
+                'message' => 'Detail status barcode saat ini:',
+                'result' => $check1,
+                'status' => FALSE,
+                'code' => 200
+            ];
+        } else {
+            $out = [
+                'message' => 'Barcode tidak terdaftar!',
+                'result' => [],
+                'status' => FALSE,
+                'code' => 404
+            ];
+        }
+
+        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+    }
+
     public function getkodePellet()
     {
         $result = DB::table('erasystem_2012.pellet')->select('KODE')->get();
@@ -104,25 +135,25 @@ class BarcodePelletDetController extends Controller
         };
     }
     
-    public function checkBarcode($barcode, $notrans)
-    {
-        $result = BarcodePelletDet::whereRaw('BARCODE = ? AND NOTRANS = ?', [$barcode, $notrans])->first();
+    // public function checkBarcode($barcode, $notrans)
+    // {
+    //     $result = BarcodePelletDet::whereRaw('BARCODE = ? AND NOTRANS = ?', [$barcode, $notrans])->first();
 
-        if ($result) {
-            $out = [
-                'message' => 'success',
-                'result' => $result,
-                'code' => 200
-            ];
-        } else {
-            $out = [
-                'message' => 'empty',
-                'result' => $result,
-                'code' => 404
-            ];
-        }
+    //     if ($result) {
+    //         $out = [
+    //             'message' => 'success',
+    //             'result' => $result,
+    //             'code' => 200
+    //         ];
+    //     } else {
+    //         $out = [
+    //             'message' => 'empty',
+    //             'result' => $result,
+    //             'code' => 404
+    //         ];
+    //     }
 
-        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
-    }
+    //     return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+    // }
 
 }
