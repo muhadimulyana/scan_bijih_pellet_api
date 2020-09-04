@@ -337,71 +337,7 @@ class BstController extends Controller
         $newstatus = 'TERIMA';
         $newpt = $pt == '1' ? 'ERA' : ( $pt == '2' ? 'ERI' : 'EPI'); 
 
-        $check1 = $result = DB::table('erasystem_2012.barcode_pellet')
-        ->join('erasystem_2012.barcode_pellet_det', function ($join) {
-            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
-        })
-        ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
-        ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
-        ->first();
-
-        if($check1){
-            
-            $result = DB::table('erasystem_2012.barcode_pellet')
-            ->join('erasystem_2012.barcode_pellet_det', function ($join) {
-                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
-            })
-            ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.GUDANG = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$barcode, $newpt, $gudang, $dept, $area, $newstatus, '1'])
-            ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
-            ->first();
-            //Belum diberikan return data ketika scan
-
-            if ($result) {
-                $out = [
-                    'message' => 'success',
-                    'result' => $result,
-                    'status' => TRUE,
-                    'code' => 200
-                ];
-            } else {
-                
-                //$area2 = 'Mixing and Blowing';
-                $cek_pellet = DB::table('erasystem_2012.list_bst_kirim')->select('*')->whereRaw('DARI_DEPT_AREA = ? AND KE_DEPT_AREA = ? AND CEK_KODE_PELLET = ?', [$area, $area2, '1'])->first();
-
-                if($cek_pellet){
-
-                    $kode = substr($barcode, 0, 13);
-                    $pellet = DB::table('erasystem_2012.pellet')->select('NAMA', 'NAMA_LABEL')->where('KODE', $kode)->first();
-
-                    $result = [
-                        'NAMA_LABEL' => $pellet->NAMA_LABEL,
-                        'KODE_PELLET' => $kode,
-                        'NAMA_PELLET' => $pellet->NAMA,
-                        'KG' => 25
-                    ];
-
-                    $out = [
-                        'message' => 'success',
-                        'result' => $result,
-                        'status' => TRUE,
-                        'code' => 200
-                    ];
-                    
-                } else {
-                    
-                    $out = [
-                        'message' => 'Barcode tidak tersedia untuk area ' . $area . '. Detail status barcode saat ini: ' ,
-                        'result' => $check1,
-                        'status' => FALSE,
-                        'code' => 200
-                    ];
-
-                }
-
-            }
-
-
-        } else {
+        if(strlen($barcode) == 13){
 
             //$area2 = 'Mixing and Blowing';
             $cek_pellet = DB::table('erasystem_2012.list_bst_kirim')->select('*')->whereRaw('DARI_DEPT_AREA = ? AND KE_DEPT_AREA = ? AND CEK_KODE_PELLET = ?', [$area, $area2, '1'])->first();
@@ -409,12 +345,18 @@ class BstController extends Controller
             if($cek_pellet){
 
                 $kode = substr($barcode, 0, 13);
-                $pellet = DB::table('erasystem_2012.pellet')->select('NAMA', 'NAMA_LABEL')->where('KODE', $kode)->first();
+                $pellet = DB::table('erasystem_2012.barcode_pellet')
+                ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                    $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                })
+                ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
+                ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
+                ->first();
 
                 $result = [
                     'NAMA_LABEL' => $pellet->NAMA_LABEL,
                     'KODE_PELLET' => $kode,
-                    'NAMA_PELLET' => $pellet->NAMA,
+                    'NAMA_PELLET' => $pellet->NAMA_PELLET,
                     'KG' => 25
                 ];
 
@@ -436,8 +378,55 @@ class BstController extends Controller
                 
             }
 
-            
+        } else {
+
+            $check1 = DB::table('erasystem_2012.barcode_pellet')
+            ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+            })
+            ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
+            ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
+            ->first();
+    
+            if($check1){
+                
+                $result = DB::table('erasystem_2012.barcode_pellet')
+                ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                    $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                })
+                ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.GUDANG = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$barcode, $newpt, $gudang, $dept, $area, $newstatus, '1'])
+                ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
+                ->first();
+                //Belum diberikan return data ketika scan
+    
+                if ($result) {
+                    $out = [
+                        'message' => 'success',
+                        'result' => $result,
+                        'status' => TRUE,
+                        'code' => 200
+                    ];
+                } else {
+                    $out = [
+                        'message' => 'Barcode tidak tersedia untuk area ' . $area . '. Detail status barcode saat ini: ' ,
+                        'result' => $check1,
+                        'status' => FALSE,
+                        'code' => 200
+                    ];
+                }
+    
+            } else {
+    
+                $out = [
+                    'message' => 'Barcode tidak terdaftar!',
+                    'result' => [],
+                    'status' => FALSE,
+                    'code' => 200
+                ];
+                
+            }
         }
+
 
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
