@@ -6,6 +6,7 @@ use App\Bst;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 
 class BstController extends Controller
 {
@@ -626,22 +627,23 @@ class BstController extends Controller
 
         DB::beginTransaction();
 
-        $insert = Bst::create($data_bst);
-        DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst);
-        DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $barcodes)->update(['LAST_UPDATE' => $datetime]);
-        //$insert = true;
+        try {
 
-        if($insert){
+            $insert = Bst::create($data_bst);
+            DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst);
+            DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $barcodes)->update(['LAST_UPDATE' => $datetime]);
+
             $out = [
-                'message' => 'success',
+                'message' => 'Submit sukses',
                 'code' => 201
             ];
             DB::commit();
 
-        } else {
+        } catch (QueryException $e) {
+
             $out = [
-                'message' => 'failed',
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
                 'code' => 404
             ];
             DB::rollBack();
