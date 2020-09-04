@@ -6,6 +6,7 @@ use App\Doi;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 
 class DoiController extends Controller
 {
@@ -654,27 +655,30 @@ class DoiController extends Controller
 
         DB::beginTransaction();
 
-        $insert = Doi::create($data_doi);
-        DB::table('erasystem_2012.doi_pellet_item')->insert($list_doi);
-        DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $barcodes)->update(['LAST_UPDATE' => $datetime]);
-        //$insert = true;
+        try {
 
-        if($insert){
+            $insert = Doi::create($data_doi);
+            DB::table('erasystem_2012.doi_pellet_item')->insert($list_doi);
+            DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $barcodes)->update(['LAST_UPDATE' => $datetime]);
+            //$insert = true;
+
             $out = [
-                'message' => 'success',
+                'message' => 'Submit sukses',
                 'code' => 201
             ];
             DB::commit();
 
-        } else {
+        } catch (QueryException $e){
+
             $out = [
-                'message' => 'failed',
-                'code' => 404
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'code' => 500
             ];
             DB::rollBack();
 
         }
+
 
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
@@ -801,28 +805,30 @@ class DoiController extends Controller
 
         DB::beginTransaction();
 
-        $update = Doi::where('ID_DO', $IdDo)->update($data_doi);
-        //DB::table('erasyste_2012.bst_pellet_item')->delete
-        DB::table('erasystem_2012.doi_pellet_item')->where('ID_DO', $IdDo)->delete();
-        DB::table('erasystem_2012.doi_pellet_item')->insert($list_doi); // Delete list bst dan masukkan kembali
+        try {
 
-        DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $add_barcode)->update(['LAST_UPDATE' => $datetime]);
-        
-        DB::statement(DB::raw("SET @AKSI='HAPUS'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
+            $update = Doi::where('ID_DO', $IdDo)->update($data_doi);
+            //DB::table('erasyste_2012.bst_pellet_item')->delete
+            DB::table('erasystem_2012.doi_pellet_item')->where('ID_DO', $IdDo)->delete();
+            DB::table('erasystem_2012.doi_pellet_item')->insert($list_doi); // Delete list bst dan masukkan kembali
 
-        if($update){
+            DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $add_barcode)->update(['LAST_UPDATE' => $datetime]);
+            
+            DB::statement(DB::raw("SET @AKSI='HAPUS'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
+            
             $out = [
                 'message' => 'success',
                 'code' => 200
             ];
             DB::commit();
 
-        } else {
+        } catch (QueryException $e){
+
             $out = [
-                'message' => 'failed',
-                'code' => 404
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'code' => 500
             ];
             DB::rollBack();
 
@@ -1078,29 +1084,33 @@ class DoiController extends Controller
         $listbarcode = array_column($barcode, 'BARCODE');
 
         DB::beginTransaction();
-        $update = Doi::where('ID_DO', $idDo)->update($data);
-        DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
-        //$update = true;
-        
-        if ($update) {
+
+        try {
+
+            $update = Doi::where('ID_DO', $idDo)->update($data);
+            DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+            //$update = true;
+
             $out = [
-                'message' => 'success',
+                'message' => 'Submit sukses',
                 'result' => $data
             ];
             $code = 201;
             DB::commit();
-        } else {
+
+        } catch ( QueryException $e) {
+
             $out = [
-                'message' => 'failed',
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
                 'result' => $data
             ];
-            $code = 404;
+            $code = 500;
             DB::rollBack();
+
         }
 
         return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
-
 
     }
 
@@ -1126,7 +1136,47 @@ class DoiController extends Controller
 
     }
 
-    //Kurang Hapus
+    public function delete($notrans)
+    {
+        $resbarcode = DB::table('erasystem_2012.barcode_pellet')
+        ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+        })
+        ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet.AKTIF = ?', ['KIRIM', $notrans, '1'])
+        ->selectRaw('barcode_pellet_det.BARCODE')
+        ->get();
+
+        $barcode = $resbarcode->toArray();
+        $listbarcode = array_column($barcode, 'BARCODE');
+        $datetime = date('Y-m-d H:i:s');
+
+        DB::beginTransaction();
+        
+        try {
+
+            $delete = Doi::where('ID_DO', $notrans)->delete();
+            DB::statement(DB::raw("SET @AKSI = 'HAPUS'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+            
+            $out = [
+                'message' => 'Hapus sukses',
+                'code' => 200
+            ];
+            DB::commit();
+
+        } catch (QueryException $e) {
+
+            $out = [
+                'message' => 'Hapus gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'code' => 500
+            ];
+            DB::rollBack();
+
+        }
+        
+        return response()->json($out, $out['code']);
+    }
+
 
 
 
