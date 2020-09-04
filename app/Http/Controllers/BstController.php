@@ -223,36 +223,29 @@ class BstController extends Controller
             $listbarcode = array_column($barcode, 'BARCODE');
 
             DB::beginTransaction();
-            $update = Bst::where('NO_BST', $noBst)->update($data);
-            DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
-            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
-            //$update = true;
-            // foreach($barcode as $row){
-            //     DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
-            //     DB::table('tes.barcode_pellet')
-            //         ->where('BARCODE',  $row->BARCODE)
-            //         ->update(['LAST_UPDATE' => $datetime]);
-            // }
-                
-            //});
 
-            //$update = DB::table('tes.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
-            //End transaction
+            try {
 
-            if ($update) {
+                $update = Bst::where('NO_BST', $noBst)->update($data);
+                DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
+                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+
                 $out = [
-                    'message' => 'success',
+                    'message' => 'Submit sukses',
                     'result' => $data
                 ];
                 $code = 201;
                 DB::commit();
-            } else {
+
+            } catch( QueryException $e) {
+
                 $out = [
-                    'message' => 'failed',
+                    'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
                     'result' => $data
                 ];
-                $code = 404;
+                $code = 500;
                 DB::rollBack();
+
             }
 
             return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
@@ -644,7 +637,7 @@ class BstController extends Controller
 
             $out = [
                 'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
-                'code' => 404
+                'code' => 500
             ];
             DB::rollBack();
 
@@ -795,29 +788,30 @@ class BstController extends Controller
 
         DB::beginTransaction();
 
-        $update = Bst::where('NO_BST', $NoTrans)->update($data_bst);
-        //DB::table('erasyste_2012.bst_pellet_item')->delete
-        DB::table('erasystem_2012.bst_pellet_item')->where('NO_BST', $NoTrans)->delete();
-        DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst); // Delete list bst dan masukkan kembali
+        try {
 
-        DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $add_barcode)->update(['LAST_UPDATE' => $datetime]);
-        
-        DB::statement(DB::raw("SET @AKSI='HAPUS'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
-        //$insert = true;
+            $update = Bst::where('NO_BST', $NoTrans)->update($data_bst);
+            //DB::table('erasyste_2012.bst_pellet_item')->delete
+            DB::table('erasystem_2012.bst_pellet_item')->where('NO_BST', $NoTrans)->delete();
+            DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst); // Delete list bst dan masukkan kembali
 
-        if($update){
+            DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $add_barcode)->update(['LAST_UPDATE' => $datetime]);
+            
+            DB::statement(DB::raw("SET @AKSI='HAPUS'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
+
             $out = [
-                'message' => 'success',
+                'message' => 'Submit sukses',
                 'code' => 200
             ];
             DB::commit();
 
-        } else {
+        } catch ( QueryException $e) {
+
             $out = [
-                'message' => 'failed',
-                'code' => 404
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'code' => 500
             ];
             DB::rollBack();
 
@@ -841,21 +835,24 @@ class BstController extends Controller
         $datetime = date('Y-m-d H:i:s');
         
         DB::beginTransaction();
-        $delete = Bst::where('NO_BST', $notrans)->delete();
-        DB::statement(DB::raw("SET @AKSI = 'HAPUS'"));
-        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
 
-        if($delete){
+        try {
+
+            $delete = Bst::where('NO_BST', $notrans)->delete();
+            DB::statement(DB::raw("SET @AKSI = 'HAPUS'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+
             $out = [
-                'message' => 'success',
+                'message' => 'Submit sukses',
                 'code' => 200
             ];
             DB::commit();
 
-        } else {
+        } catch (QueryException $e){
+
             $out = [
-                'message' => 'failed',
-                'code' => 404
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'code' => 500
             ];
             DB::rollBack();
 
