@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\AppInfo;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class AppInfoController extends Controller
 {
@@ -32,33 +33,45 @@ class AppInfoController extends Controller
         $packageName = $request->input('packageName');
         $version = $request->input('version');
 
-        //Select untuk versi
-        $appInfo = AppInfo::whereRaw('package_name = ?', [$packageName])->selectRaw('package_name, version, message')->first();
-        
-        if($appInfo){
+        try {
+            //Select untuk versi
+            $appInfo = AppInfo::whereRaw('package_names = ?', [$packageName])->selectRaw('package_name, version, message')->first();
             
-            if($appInfo->version == $version){
-                $out = [
-                    'result' => [],
-                    'status' =>false,
-                    'code' => 200
-                ];
+            if($appInfo){
+                
+                if($appInfo->version == $version){
+                    $out = [
+                        'message' => 'Tidak ada update',
+                        'result' => [],
+                        'status' => false,
+                        'code' => 200
+                    ];
+                } else {
+                    $out = [
+                        'message' => $appInfo->message,
+                        'result' => $appInfo->message,
+                        'status' => true,
+                        'code' => 200
+                    ];
+                }
+                
             } else {
                 $out = [
-                    'result' => $appInfo->message,
-                    'status' => true,
+                    'message' => 'Aplikasi tidak ditemukan',
+                    'result' => [],
+                    'status' => false,
                     'code' => 200
                 ];
             }
-            
-        } else {
-            $out = [
-                'message' => 'empty',
-                'result' => [],
-                'code' => 404
-            ];
-        }
 
+        } catch (QueryException $e){
+            $out = [
+                'message' =>  'Error: [' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'result' => [],
+                'status' => false,
+                'code' => 500
+            ];
+        } 
 
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
