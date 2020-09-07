@@ -460,7 +460,7 @@ class BstController extends Controller
                 'message' => 'Barcode tidak terdaftar!',
                 'result' => [],
                 'status' => FALSE,
-                'code' => 404
+                'code' => 200
             ];
         }
 

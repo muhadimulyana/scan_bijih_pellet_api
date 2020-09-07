@@ -990,6 +990,7 @@ class DoiController extends Controller
             $out = [
                 'message' => 'Barcode tidak tersedia untuk terima DOI. Detail status barcode saat ini: ',
                 'result' => $check1,
+                'isRegistered' => TRUE,
                 'status' => FALSE,
                 'code' => 200
             ];
@@ -997,8 +998,9 @@ class DoiController extends Controller
             $out = [
                 'message' => 'Barcode tidak terdaftar!',
                 'result' => [],
+                'isRegistered' => FALSE,
                 'status' => FALSE,
-                'code' => 404
+                'code' => 200
             ];
         }
 
