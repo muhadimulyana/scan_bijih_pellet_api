@@ -452,6 +452,7 @@ class BstController extends Controller
             $out = [
                 'message' => 'Detail Status Barcode',
                 'result' => $check1,
+                'isRegistered' => TRUE,
                 'status' => FALSE,
                 'code' => 200
             ];
@@ -459,6 +460,7 @@ class BstController extends Controller
             $out = [
                 'message' => 'Barcode tidak terdaftar!',
                 'result' => [],
+                'isRegistered' => FALSE,
                 'status' => FALSE,
                 'code' => 200
             ];
