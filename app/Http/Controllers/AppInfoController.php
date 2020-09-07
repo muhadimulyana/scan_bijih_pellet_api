@@ -76,6 +76,8 @@ class AppInfoController extends Controller
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
 
+
+    //Tidak dipakai
     public function store(Request $request)
     {
 
