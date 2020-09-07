@@ -349,15 +349,16 @@ class BstController extends Controller
                 ->join('erasystem_2012.barcode_pellet_det', function ($join) {
                     $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
                 })
-                ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
-                ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
+                ->whereRaw('barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.GUDANG = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.KODE_PELLET = ? AND barcode_pellet.AKTIF = ?', [$newpt, $gudang, $dept, $area, $newstatus, $kode, '1'])
+                ->selectRaw("COUNT(*) AS SISA, barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
                 ->first();
 
                 $result = [
                     'NAMA_LABEL' => $pellet->NAMA_LABEL,
                     'KODE_PELLET' => $kode,
                     'NAMA_PELLET' => $pellet->NAMA_PELLET,
-                    'KG' => 25
+                    'KG' => 25,
+                    'SISA' => $pellet->SISA
                 ];
 
                 $out = [
