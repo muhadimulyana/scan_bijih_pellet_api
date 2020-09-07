@@ -6,9 +6,11 @@ use App\DeviceInfo;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 
 class DeviceInfoController extends Controller
 {
+    //Tidak terpakai
     public function show($uDeviceId, $uAppId, $uName)
     {
         $data = DeviceInfo::whereRaw('device_id = ? and app_id = ? and user = ?', [$uDeviceId, $uAppId, $uName])->first();
@@ -41,22 +43,60 @@ class DeviceInfoController extends Controller
         $uDeviceId = $request->input('deviceId');
         $uAppId = $request->input('appId');
         $uName = $request->input('uName');
+        
 
-        $data = DeviceInfo::whereRaw('device_id = ? and app_id = ? and user = ?', [$uDeviceId, $uAppId, $uName])->first();
+        try {
 
-        if($data){
+            $data = DeviceInfo::whereRaw('device_id = ? and app_id = ? and user = ?', [$uDeviceId, $uAppId, $uName])->first();
+    
+            if($data){
+
+                if($data->active == 1){
+
+                    $out = [
+                        'message' => 'success',
+                        'status' => true,
+                        'isRegistered' => true,
+                        'isActivated' => $data->active,
+                        'result' => $data,
+                        'code' => 200,
+                    ];
+
+                } else {
+
+                    $out = [
+                        'message' => 'Device belum diaktifkan, coba login kembali',
+                        'status' => true,
+                        'isRegistered' => true,
+                        'isActivated' => $data->active,
+                        'result' => $data,
+                        'code' => 200,
+                    ];
+
+                }
+
+            } else {
+                $out = [
+                    'message' => 'Device tidak terdaftar',
+                    'status' => true,
+                    'isRegistered' => false,
+                    'isActivated' => 0,
+                    'result' => [],
+                    'code' => 200,
+                ];
+            }
+
+        } catch (QueryException $e) {
+
             $out = [
-                'message' => 'success',
-                'result' => $data,
-                'code' => 200,
-            ];
-        } else {
-            $out = [
-                'message' => 'empty',
+                'message' =>  'Error: [' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'status' => false,
                 'result' => [],
-                'code' => 404,
+                'code' => 500
             ];
+
         }
+
 
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
@@ -78,39 +118,52 @@ class DeviceInfoController extends Controller
         $deviceModel = $request->input('deviceModel');
         $packageName = $request->input('packageName');
 
-        $app_info = DB::table('android_data.app_info')->where('package_name', $packageName)->select('isRegister')->first();
-
-        $active = 0;
         
-        if($app_info){
-            $active = $app_info->isRegister;
-        } 
-
-        $data = [
-            'device_id' => $deviceId,
-            'app_name' => $appName,
-            'user' => $uName,
-            'app_id' => $packageName,
-            'device_model' => $deviceModel,
-            'active' => $active,
-            'created_date' => date('Y-m-d H:i:s')
-        ];
-
-        $insert = DeviceInfo::insertOrIgnore($data);
-
-        if ($insert) {
-            $out = [
-                'message' => 'success',
-                'result' => 1,
-                'code' => '201',
+        try {
+            
+            $app_info = DB::table('android_data.app_info')->where('package_name', $packageName)->select('isRegister')->first();
+    
+            $active = 0;
+            
+            if($app_info){
+                $active = $app_info->isRegister;
+            } 
+    
+            $data = [
+                'device_id' => $deviceId,
+                'app_name' => $appName,
+                'user' => $uName,
+                'app_id' => $packageName,
+                'device_model' => $deviceModel,
+                'active' => $active,
+                'created_date' => date('Y-m-d H:i:s')
             ];
-        } else {
+            
+            $insert = DeviceInfo::insertOrIgnore($data);
+
+            if ($insert) {
+                $out = [
+                    'message' => 'Device berhasil didaftarkan',
+                    'status' => true,
+                    'code' => 201,
+                ];
+            } else {
+                $out = [
+                    'message' => 'Device sudah terdaftar, silakan login kembali',
+                    'status' => false,
+                    'code' => 200,
+                ];
+            }
+
+        } catch ( QueryException $e ){
             $out = [
-                'message' => 'device already exists',
-                'result' => 0,
-                'code' => '404',
+                'message' =>  'Error: [' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'status' => false,
+                'code' => 500,
             ];
         }
+
+        
 
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
