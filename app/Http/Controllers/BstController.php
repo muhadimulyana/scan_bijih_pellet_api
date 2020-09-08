@@ -529,7 +529,7 @@ class BstController extends Controller
                     'status' => FALSE,
                     'isRegistered' => FALSE,
                     'isScan' => FALSE,
-                    'code' => 404
+                    'code' => 200
                 ];
             }
             
