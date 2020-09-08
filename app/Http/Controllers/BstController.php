@@ -62,19 +62,21 @@ class BstController extends Controller
 
     public function gettotalBarcode($notrans) // Untuk terima
     {
-        $barcode = DB::table('tes.barcode_pellet')
-        ->join('tes.barcode_pellet_det', function ($join) {
-            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
-        })
-        ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ?', ['KIRIM', $notrans])
-        ->selectRaw('barcode_pellet_det.NOTRANS, count(*) as TOTAL')
-        ->first();
+        // $barcode = DB::table('tes.barcode_pellet')
+        // ->join('tes.barcode_pellet_det', function ($join) {
+        //     $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+        // })
+        // ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ?', ['KIRIM', $notrans])
+        // ->selectRaw('barcode_pellet_det.NOTRANS, count(*) as TOTAL')
+        // ->first();
+
+        $bst = Bst::selectRaw('TOTAL')->where('NO_BST', $notrans)->first();
         
 
         $out = [
             'message' => 'success',
-            'total' => $barcode->TOTAL,
-            'notrans' => $barcode->NOTRANS
+            'total' => $bst->TOTAL,
+            'notrans' => $notrans
         ];
 
         return response()->json($out, 200, [], JSON_NUMERIC_CHECK);
