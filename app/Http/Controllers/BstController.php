@@ -486,10 +486,6 @@ class BstController extends Controller
                 $sisa = $list->JUMLAH_ITEM - $pellet->JUMLAH_BARCODE;
 
                 $result = [
-                    'NAMA_LABEL' => $pellet->NAMA_LABEL,
-                    'KODE_PELLET' => $kode,
-                    'NAMA_PELLET' => $pellet->NAMA_PELLET,
-                    'KG' => 25,
                     'SISA' => $sisa
                 ];
 
@@ -497,6 +493,8 @@ class BstController extends Controller
                     'message' => 'success',
                     'result' => $result,
                     'status' => TRUE,
+                    'isRegistered' => TRUE,
+                    'isScan' => TRUE,
                     'code' => 200
                 ];
                 
@@ -506,6 +504,8 @@ class BstController extends Controller
                     'message' => 'Barcode tidak terdaftar!',
                     'result' => [],
                     'status' => FALSE,
+                    'isRegistered' => FALSE,
+                    'isScan' => FALSE,
                     'code' => 200
                 ];
                 
@@ -518,6 +518,8 @@ class BstController extends Controller
                     'message' => 'Detail Status Barcode',
                     'result' => $check1,
                     'status' => FALSE,
+                    'isRegistered' => TRUE,
+                    'isScan' => FALSE,
                     'code' => 200
                 ];
             } else {
@@ -525,6 +527,8 @@ class BstController extends Controller
                     'message' => 'Barcode tidak terdaftar!',
                     'result' => [],
                     'status' => FALSE,
+                    'isRegistered' => FALSE,
+                    'isScan' => FALSE,
                     'code' => 404
                 ];
             }
