@@ -72,7 +72,7 @@ class BarcodePelletDetController extends Controller
                 for( $i=1; $i <= $iterasi; $i++ ){
 
                     $data[] = [
-                        'BARCODE' => $item . '/' . $i,
+                        'BARCODE' => $item . ' (' . $i . ')',
                         'KODE_PELLET' => $item,
                         'NAMA_PELLET' => $pellet->NAMA_PELLET,
                         'NAMA_LABEL' => $pellet->NAMA_LABEL,
