@@ -54,7 +54,7 @@ $router->group(['prefix' => 'barcodePelletDet'], function () use ($router) {
     $router->get('/', 'BarcodePelletDetController@index');
     $router->post('/insert', 'BarcodePelletDetController@store');
     //get list barcode
-    $router->get('/getlistBarcode/{status}/{notrans:[A-Za-z0-9/]+}', 'BarcodePelletDetController@getlistBarcode');
+    $router->get('/getlistBarcode/{pt}/{gudang}/{dep}/{status}/{notrans:[A-Za-z0-9/]+}', 'BarcodePelletDetController@getlistBarcode');
     $router->get('/getPellet', 'BarcodePelletDetController@getkodePellet');
     $router->post('/checkBarcode', 'BarcodePelletDetController@checkBarcode');
 });
@@ -76,6 +76,7 @@ $router->group(['prefix' => 'bst'], function () use ($router) {
     $router->post('/ceklistArea', 'BstController@ceklistArea');
     $router->delete('/delete/{notrans:[A-Za-z0-9/]+}', 'BstController@delete');
     $router->get('/checkFinal/{notrans:[A-Za-z0-9/]+}', 'BstController@checkFinalize');
+    $router->get('/getlistBarcode/{pt}/{gudang}/{dep}/{status}/{notrans:[A-Za-z0-9/]+}', 'BstController@getlistBarcode');
     //$router->post('/submit', 'BstController@store');
 });
 // $router->get('/getBst', 'BstController@bstKirim');

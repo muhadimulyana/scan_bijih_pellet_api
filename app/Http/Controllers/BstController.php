@@ -887,6 +887,28 @@ class BstController extends Controller
 
     }
 
+    public function getlistBarcode($pt, $gudang, $dep, $status, $notrans)
+    {
+        //$gudang = urldecode($gudang);
+        $newstatus = $status == 'TERIMA' ? 'KIRIM' : 'KIRIM';
+        //$newpt = $pt == '1' ? 'ERA' : 'ERI'; 
+
+        $result = DB::table('erasystem_2012.barcode_pellet')
+            ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+            })
+            ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet.AKTIF = ?', [$newstatus, $notrans, '1'])
+            ->selectRaw('barcode_pellet_det.BARCODE, barcode_pellet.KODE_PELLET, barcode_pellet.NAMA_PELLET, barcode_pellet.NAMA_LABEL, barcode_pellet.KG')
+            ->get();
+
+        $out = [
+            'message' => 'success',
+            'result' => $result
+        ];
+
+        return response()->json($out, 200, [], JSON_NUMERIC_CHECK);
+    }
+
 
     
 }
