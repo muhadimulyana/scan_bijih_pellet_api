@@ -16,9 +16,9 @@ class BarcodePelletDetController extends Controller
         return response()->json($result);
     }
     
-    public function getlistBarcode($status, $notrans)//Dep yg dimaksud dep penerima atau pengirim
+    public function getlistBarcode($pt, $gudang, $dep, $status, $notrans)
     {
-
+        //$gudang = urldecode($gudang);
         $newstatus = $status == 'TERIMA' ? 'KIRIM' : 'KIRIM';
         //$newpt = $pt == '1' ? 'ERA' : 'ERI'; 
 
@@ -27,7 +27,7 @@ class BarcodePelletDetController extends Controller
                 $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
             })
             ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet.AKTIF = ?', [$newstatus, $notrans, '1'])
-            ->select('barcode_pellet_det.*')
+            ->selectRaw('barcode_pellet_det.BARCODE, barcode_pellet.KODE_PELLET, barcode_pellet.NAMA_PELLET, barcode_pellet.NAMA_LABEL, barcode_pellet.KG')
             ->get();
 
         $out = [
