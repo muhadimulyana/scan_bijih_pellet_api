@@ -72,7 +72,7 @@ $router->group(['prefix' => 'bst'], function () use ($router) {
     $router->post('/checkBarcode', 'BstController@checkBarcode');
     $router->post('/checkBarcodeKirim', 'BstController@checkBarcodeKirim');
     $router->post('/checkBarcodeTerima', 'BstController@checkBarcodeTerima');
-    $router->post('/checkBarcodeKirimUpdate', 'BstController@checkbarcodeDraf');
+    $router->post('/checkBarcodeKirimUpdate', 'BstController@checkBarcodeKirimUpdate');
     $router->post('/ceklistArea', 'BstController@ceklistArea');
     $router->delete('/delete/{notrans:[A-Za-z0-9/]+}', 'BstController@delete');
     $router->get('/checkFinal/{notrans:[A-Za-z0-9/]+}', 'BstController@checkFinalize');
