@@ -368,7 +368,7 @@ class BstController extends Controller
                         'result' => $result,
                         'status' => TRUE,
                         'code' => 200,
-                        'isRegistered' => FALSE
+                        'isRegistered' => TRUE
                     ];
 
                 } else {
@@ -434,7 +434,7 @@ class BstController extends Controller
                         'result' => $result_data,
                         'status' => TRUE,
                         'code' => 200,
-                        'isRegistered' => FALSE
+                        'isRegistered' => TRUE
                     ];
                 } else {
                     $out = [
@@ -442,7 +442,7 @@ class BstController extends Controller
                         'result' => $check1,
                         'status' => FALSE,
                         'code' => 200,
-                        'isRegistered' => FALSE
+                        'isRegistered' => TRUE
                     ];
                 }
     
@@ -512,7 +512,7 @@ class BstController extends Controller
                         'result' => $result,
                         'status' => TRUE,
                         'code' => 200,
-                        'isRegistered' => FALSE
+                        'isRegistered' => TRUE
                     ];
 
                 } else {
@@ -580,7 +580,7 @@ class BstController extends Controller
                         'result' => $result_data,
                         'status' => TRUE,
                         'code' => 200,
-                        'isRegistered' => FALSE
+                        'isRegistered' => TRUE
                     ];
                 } else {
                     $out = [
@@ -588,7 +588,7 @@ class BstController extends Controller
                         'result' => $check1,
                         'status' => FALSE,
                         'code' => 200,
-                        'isRegistered' => FALSE
+                        'isRegistered' => TRUE
                     ];
                 }
     
