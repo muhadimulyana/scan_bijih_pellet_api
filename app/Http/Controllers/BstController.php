@@ -11,30 +11,20 @@ use Illuminate\Database\QueryException;
 class BstController extends Controller
 {
 
-    public function bstKirim($pt, $gudang, $dept) // Untuk terima BST (privilleged user)
+    public function bstKirim($pt, $gudang, $dept, $area)
     {
         //$data = Bst::where('STATUS', '1')->where('(SELECT(LEFT(NO_BST, 1))', '=', '1')->get();
-        $gudang = urldecode($gudang);
+         $gudang = urldecode($gudang);
+         $area = urldecode($area);
 
-        $data = Bst::whereRaw('STATUS = ? AND LEFT(NO_BST, 1) = ? AND GUDANG = ? AND DARI_DEPT_ID = ?', ['1', $pt, $gudang, $dept])->get();
-        //Ubah dari_dept_id => ke_dept_id
-        //sebelumnya data tetap ditampilkan mesi kosong
+        $data = Bst::whereRaw('STATUS = ? AND LEFT(NO_BST, 1) = ? AND GUDANG = ? AND KE_DEPT_ID = ? AND KE_DEPT_AREA = ?', ['1', $pt, $gudang, $dept, $area])->get();
 
-        if($data->count()){
-            $out = [
-                'message' => 'success',
-                'result' => $data,
-                'code' => 200
-            ];
-        } else {
-            $out = [
-                'message' => 'empty',
-                'result' => [],
-                'code' => 404
-            ];
-        }
+        $out = [
+            'message' => 'success',
+            'result' => $data,
+        ];
 
-        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+        return response()->json($out, 200, [], JSON_NUMERIC_CHECK);
     }
 
     public function getbstUser($pt, $dept) // Untuk user = 0 (Menampilkan BST untuk di terima)
@@ -631,17 +621,17 @@ class BstController extends Controller
 
             if($cek_pellet){
                 
-                $pellet = DB::table('erasystem_2012.barcode_pellet')
-                ->join('erasystem_2012.barcode_pellet_det', function ($join) {
-                    $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
-                })
-                ->whereRaw('barcode_pellet_det.NOTRANS = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.KODE_PELLET = ? AND barcode_pellet.AKTIF = ?', [$notrans, 'KIRIM', $kode, '1'])
-                ->selectRaw("COUNT(*) AS JUMLAH_BARCODE, barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET")
-                ->first();
+                $list = DB::table('erasystem_2012.bst_pellet_item')->whereRaw('NO_BST = ? AND KODE_PELLET = ?', [$notrans, $kode])->selectRaw('QTY AS JUMLAH_ITEM')->first();
                 
-                if($pellet->JUMLAH_BARCODE > 0){
-
-                    $list = DB::table('erasystem_2012.bst_pellet_item')->whereRaw('NO_BST = ? AND KODE_PELLET = ?', [$notrans, $kode])->selectRaw('QTY AS JUMLAH_ITEM')->first();
+                if($list){
+                    
+                    $pellet = DB::table('erasystem_2012.barcode_pellet')
+                    ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                        $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                    })
+                    ->whereRaw('barcode_pellet_det.NOTRANS = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.KODE_PELLET = ? AND barcode_pellet.AKTIF = ?', [$notrans, 'KIRIM', $kode, '1'])
+                    ->selectRaw("COUNT(*) AS JUMLAH_BARCODE")
+                    ->first();
     
                     $sisa = $list->JUMLAH_ITEM - $pellet->JUMLAH_BARCODE;
     
@@ -689,7 +679,7 @@ class BstController extends Controller
 
             if($check1){
                 $out = [
-                    'message' => 'Detail Status Barcode',
+                    'message' => 'Barcode tidak tersedia untuk BST nomor ' . $notrans . '. Detail status barcode saat ini: ',
                     'result' => $check1,
                     'status' => FALSE,
                     'isRegistered' => TRUE,
