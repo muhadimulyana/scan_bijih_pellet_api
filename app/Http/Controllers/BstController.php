@@ -438,39 +438,7 @@ class BstController extends Controller
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
 
-    public function checkBarcodeTerima(Request $request)
-    {
-        $barcode = $request->input('BARCODE');
-
-        $check1 = DB::table('erasystem_2012.barcode_pellet')
-        ->join('erasystem_2012.barcode_pellet_det', function ($join) {
-            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
-        })
-        ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
-        ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
-        ->first();
-
-        if($check1){
-            $out = [
-                'message' => 'Detail Status Barcode',
-                'result' => $check1,
-                'isRegistered' => TRUE,
-                'status' => FALSE,
-                'code' => 200
-            ];
-        } else {
-            $out = [
-                'message' => 'Barcode tidak terdaftar!',
-                'result' => [],
-                'isRegistered' => FALSE,
-                'status' => FALSE,
-                'code' => 200
-            ];
-        }
-
-        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
-
-    }
+    
 
 
     public function checkbarcodeDraf(Request $request) // Kirim Update
