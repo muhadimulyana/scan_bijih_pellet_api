@@ -367,7 +367,8 @@ class BstController extends Controller
                         'message' => 'success',
                         'result' => $result,
                         'status' => TRUE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
 
                 } else {
@@ -376,7 +377,8 @@ class BstController extends Controller
                         'message' => 'Barcode tidak terdaftar!',
                         'result' => [],
                         'status' => FALSE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
 
                 }
@@ -387,7 +389,8 @@ class BstController extends Controller
                     'message' => 'Barcode tidak terdaftar!',
                     'result' => [],
                     'status' => FALSE,
-                    'code' => 200
+                    'code' => 200,
+                    'isRegistered' => FALSE
                 ];
                 
             }
@@ -430,14 +433,16 @@ class BstController extends Controller
                         'message' => 'success',
                         'result' => $result_data,
                         'status' => TRUE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
                 } else {
                     $out = [
                         'message' => 'Barcode tidak tersedia untuk area ' . $area . '. Detail status barcode saat ini: ' ,
                         'result' => $check1,
                         'status' => FALSE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
                 }
     
@@ -447,7 +452,8 @@ class BstController extends Controller
                     'message' => 'Barcode tidak terdaftar!',
                     'result' => [],
                     'status' => FALSE,
-                    'code' => 200
+                    'code' => 200,
+                    'isRegistered' => FALSE
                 ];
                 
             }
@@ -505,7 +511,8 @@ class BstController extends Controller
                         'message' => 'success',
                         'result' => $result,
                         'status' => TRUE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
 
                 } else {
@@ -514,7 +521,8 @@ class BstController extends Controller
                         'message' => 'Barcode tidak terdaftar!',
                         'result' => [],
                         'status' => FALSE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
 
                 }
@@ -525,7 +533,8 @@ class BstController extends Controller
                     'message' => 'Barcode tidak terdaftar!',
                     'result' => [],
                     'status' => FALSE,
-                    'code' => 200
+                    'code' => 200,
+                    'isRegistered' => FALSE
                 ];
                 
             }
@@ -570,14 +579,16 @@ class BstController extends Controller
                         'message' => 'success',
                         'result' => $result_data,
                         'status' => TRUE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
                 } else {
                     $out = [
                         'message' => 'Barcode tidak tersedia untuk area ' . $area . '. Detail status barcode saat ini: ' ,
                         'result' => $check1,
                         'status' => FALSE,
-                        'code' => 200
+                        'code' => 200,
+                        'isRegistered' => FALSE
                     ];
                 }
     
@@ -587,7 +598,8 @@ class BstController extends Controller
                     'message' => 'Barcode tidak terdaftar!',
                     'result' => [],
                     'status' => FALSE,
-                    'code' => 200
+                    'code' => 200,
+                    'isRegistered' => FALSE
                 ];
                 
             }
