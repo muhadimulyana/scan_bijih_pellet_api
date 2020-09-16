@@ -167,7 +167,8 @@ class BstController extends Controller
                 'PT_NAMA' => 'required',
                 'GUDANG' => 'required',
                 'STATUS' => 'required',
-                'NOTRANS' => 'required'
+                'NOTRANS' => 'required',
+                'DEVICE_LOGIN' => 'required'
             ]);
 
             $status = $request->input('STATUS');
@@ -218,6 +219,7 @@ class BstController extends Controller
 
             try {
 
+                DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
                 $update = Bst::where('NO_BST', $noBst)->update($data);
                 DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
                 DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
@@ -737,7 +739,7 @@ class BstController extends Controller
     }
 
 
-    public function store(Request $request)
+    public function store(Request $request) // Simpan / Tambah BST
     { // Ada 2 tambahkan PT dan Gudang yg kirim untuk set variabel
         $records = $request->all();
 
@@ -753,7 +755,8 @@ class BstController extends Controller
             '*.KE_DEPT_NAMA' => 'required',
             '*.DARI_DEPT_AREA' => 'required',
             '*.KE_DEPT_AREA' => 'required',
-            '*.STATUS' => 'required'
+            '*.STATUS' => 'required',
+            '*.DEVICE_LOGIN' => 'required'
         ]);
 
         // handle data bst
@@ -858,6 +861,7 @@ class BstController extends Controller
 
         try {
 
+            DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
             $insert = Bst::create($data_bst);
             DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst);
             DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
@@ -919,6 +923,7 @@ class BstController extends Controller
             '*.GUDANG' => 'required',
             '*.STATUS' => 'required',
             '*.NO_BST' => 'required',
+            '*.DEVICE_LOGIN' => 'required'
             //'*.STATUS_BARCODE' => 'required'
             //Butuh satu field status_barcode = "hapus" / "tambah"
         ]);
@@ -1026,6 +1031,7 @@ class BstController extends Controller
 
         try {
 
+            DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
             $update = Bst::where('NO_BST', $NoTrans)->update($data_bst);
             //DB::table('erasyste_2012.bst_pellet_item')->delete
             DB::table('erasystem_2012.bst_pellet_item')->where('NO_BST', $NoTrans)->delete();
@@ -1056,7 +1062,7 @@ class BstController extends Controller
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
 
-    public function delete($notrans)
+    public function delete($notrans, $userid, $userdevice)
     {
         $resbarcode = DB::table('erasystem_2012.barcode_pellet')
         ->join('erasystem_2012.barcode_pellet_det', function ($join) {
@@ -1074,12 +1080,13 @@ class BstController extends Controller
 
         try {
 
+            DB::statement(DB::raw("SET @USER_LOGIN='" . $userid . "', @DEVICE_LOGIN='" . $userdevice . "'"));
             $delete = Bst::where('NO_BST', $notrans)->delete();
             DB::statement(DB::raw("SET @AKSI = 'HAPUS'"));
             DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
 
             $out = [
-                'message' => 'Submit sukses',
+                'message' => 'Hapus sukses',
                 'code' => 200
             ];
             DB::commit();
@@ -1087,7 +1094,7 @@ class BstController extends Controller
         } catch (QueryException $e){
 
             $out = [
-                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'message' => 'Hapus gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
                 'code' => 500
             ];
             DB::rollBack();
