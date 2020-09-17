@@ -176,6 +176,7 @@ class BstController extends Controller
             $noBst = $request->input('NOTRANS');
             $ptId = $request->input('PT_ID');
             $ptNama = $request->input('PT_NAMA');
+            $device = $request->input('DEVICE_LOGIN');
             //$gudang = $request->input('GUDANG');
             //$area = $request->input('AREA');
 
@@ -219,7 +220,7 @@ class BstController extends Controller
 
             try {
 
-                DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
+                DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $device . "'"));
                 $update = Bst::where('NO_BST', $noBst)->update($data);
                 DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
                 DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
