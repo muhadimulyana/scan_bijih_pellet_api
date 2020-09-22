@@ -412,14 +412,14 @@ class BstController extends Controller
     
                 if ($result) {
 
-                    $sisa = DB::table('erasystem_2012.viewstokpellet')->selectRaw('SUM(IF(JENIS=1,QTY,-1*QTY)) AS SISA')->whereRaw('PT_ID = ? AND GUDANG = ? AND KODE_PELLET = ? AND DATE(TANGGAL) <= ?', [$newpt, $gudang, $kode, date('Y-m-d')])->first();
+                    //$sisa = DB::table('erasystem_2012.viewstokpellet')->selectRaw('SUM(IF(JENIS=1,QTY,-1*QTY)) AS SISA')->whereRaw('PT_ID = ? AND GUDANG = ? AND KODE_PELLET = ? AND DATE(TANGGAL) <= ?', [$newpt, $gudang, $kode, date('Y-m-d')])->first();
 
                     $result_data = [
                         'NAMA_LABEL' => $result->NAMA_LABEL,
                         'KODE_PELLET' => $result->KODE_PELLET,
                         'NAMA_PELLET' => $result->NAMA_PELLET,
                         'KG' => $result->KG,
-                        'SISA' => $sisa->SISA
+                        'SISA' => 1
                     ];
 
                     $out = [
@@ -556,16 +556,16 @@ class BstController extends Controller
     
                 if ($result) {
 
-                    $sisa = DB::table('erasystem_2012.viewstokpellet')->selectRaw('SUM(IF(JENIS=1,QTY,-1*QTY)) AS SISA')->whereRaw('PT_ID = ? AND GUDANG = ? AND KODE_PELLET = ? AND DATE(TANGGAL) <= ?', [$newpt, $gudang, $kode, date('Y-m-d')])->first();
+                    //$sisa = DB::table('erasystem_2012.viewstokpellet')->selectRaw('SUM(IF(JENIS=1,QTY,-1*QTY)) AS SISA')->whereRaw('PT_ID = ? AND GUDANG = ? AND KODE_PELLET = ? AND DATE(TANGGAL) <= ?', [$newpt, $gudang, $kode, date('Y-m-d')])->first();
 
-                    $sisa = $sisa->SISA - $total;
+                    $sisa = $result->SISA - $total;
 
                     $result_data = [
                         'NAMA_LABEL' => $result->NAMA_LABEL,
                         'KODE_PELLET' => $result->KODE_PELLET,
                         'NAMA_PELLET' => $result->NAMA_PELLET,
                         'KG' => $result->KG,
-                        'SISA' => $sisa
+                        'SISA' => 1
                     ];
 
                     $out = [

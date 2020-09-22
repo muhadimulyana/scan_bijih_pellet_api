@@ -49,17 +49,19 @@ class LoginController extends Controller
             $out = [
                 'message' => 'success',
                 'result' => $data,
+                'status' => true,
                 'code' => 200,
             ];
         } else {
             $out = [
-                'message' => 'failed login',
+                'message' => 'User atau password salah!',
                 'result' => [],
-                'code' => 404,
+                'status' => false,
+                'code' => 200,
             ];
         }
 
-        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+        return response()->json($out, $out['code']);
     }
 
 
