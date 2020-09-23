@@ -1152,7 +1152,7 @@ class BstController extends Controller
             $kode = $row->KODE_PELLET;
             if(!in_array($kode, $list_pellet_barcode)){
                 $items[] = [
-                    'BARCODE' => '',
+                    'BARCODE' => $kode,
                     'KODE_PELLET' => $kode,
                     'NAMA_PELLET' => $row->NAMA_PELLET,
                     'NAMA_LABEL' => $row->NAMA_LABEL,
