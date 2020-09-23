@@ -17,7 +17,7 @@ class LoginController extends Controller
             ->join('hrd.viewkaryawan', 'viewkaryawan.nik', '=', 'user_right.nik')
             ->join('hrd.m_cabang', 'viewkaryawan.Cabang', '=', 'm_cabang.Kode')
             //->join('erasystem_2012.whole_system', 'user_management.user_right.nik', '=', 'erasystem_2012.whole_system.Nik')
-            ->whereRaw('BINARY user_management.user_right.User_Name = ? ', [$uName])
+            ->whereRaw('BINARY user_management.user_right.User_Name = ? AND BINARY user_management.user_right.Pass = ? ', [$uName, $uPass])
             ->selectRaw("user_right.nik, user_right.User_Name, user_right.Pass, viewkaryawan.Nama, viewkaryawan.Cabang, viewkaryawan.KoDep, viewkaryawan.Departemen, viewkaryawan.Kode_Jabatan AS KoJab, viewkaryawan.jabatan, viewkaryawan.anggota_group, viewkaryawan.Grup, viewkaryawan.Section, m_cabang.KaCab, (CASE WHEN m_cabang.Cabang = 'PT. Elite Recycling Indonesia Extention' THEN 'PT. Elite Recycling Indonesia' ELSE m_cabang.Cabang END) AS pt_nama, (CASE WHEN m_cabang.Kode = 'ERA 88' THEN 1 WHEN m_cabang.Kode = 'ERI' THEN 2 WHEN m_cabang.Kode = 'ERIX' THEN 2 WHEN m_cabang.Kode = 'EPI' THEN 3 ELSE 4 END) AS pt_id")
             ->first();
 
