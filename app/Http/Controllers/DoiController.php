@@ -576,9 +576,9 @@ class DoiController extends Controller
 
         //Data user yg kirim
         $soi = DB::table('erasystem_2012.soi_pellet')->selectRaw('DARI_PT_ID, DARI_PT_NAMA, DARI_GUDANG')->where('ID_SO', $id_so)->first();
-        // $pt_user = $soi->DARI_PT_ID;
-        // $pt_nama_user = $soi->DARI_PT_NAMA;
-        // $gudang_user = $soi->DARI_GUDANG;
+        $pt_user = $soi->DARI_PT_ID;
+        $pt_nama_user = $soi->DARI_PT_NAMA;
+        $gudang_user = $soi->DARI_GUDANG;
         //$newpt_user = $pt == '1' ? 'ERA' : ( $pt == '2' ? 'ERI' : 'EPI'); 
         
         $n_tahun = date('y', strtotime($date));
