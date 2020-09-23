@@ -806,7 +806,7 @@ class BstController extends Controller
         $list_bst = [];
 
         $total_item = [];
-        foreach($records as $a){
+        foreach($records as $a){ // Digunakan untuk mengakumulasi KG
 
             $kg = $a['KG'];
             $kd_pellet = $a['KODE_PELLET'];
@@ -1140,6 +1140,31 @@ class BstController extends Controller
             ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet.AKTIF = ?', [$newstatus, $notrans, '1'])
             ->selectRaw('barcode_pellet_det.BARCODE, barcode_pellet.KODE_PELLET, barcode_pellet.NAMA_PELLET, barcode_pellet.NAMA_LABEL, barcode_pellet.KG')
             ->get();
+
+        $arr_barcode = $result->toArray(); 
+        $list_pellet_barcode = array_column($arr_barcode, 'KODE_PELLET');
+
+        $item = DB::table('erasystem_2012.bst_pellet_item')->whereRaw('NO_BST = ?', [$notrans])->get()->toArray();
+        
+        $items = false;
+        foreach($item as $row){
+
+            $kode = $row->KODE_PELLET;
+            if(!in_array($kode, $list_pellet_barcode)){
+                $items[] = [
+                    'BARCODE' => '',
+                    'KODE_PELLET' => $kode,
+                    'NAMA_PELLET' => $row->NAMA_PELLET,
+                    'NAMA_LABEL' => $row->NAMA_LABEL,
+                    'KG' => 25
+                ];
+            }
+
+        }
+
+        if($items){
+            $result = array_merge($arr_barcode, $items);
+        }
 
         $out = [
             'message' => 'success',
