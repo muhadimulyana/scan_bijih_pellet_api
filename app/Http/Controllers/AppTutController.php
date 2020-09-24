@@ -14,7 +14,7 @@ class AppTutController extends Controller
     {
         $package_name = $request->input('package_name');
 
-        $app = AppTut::selectRaw('CAST(id as CHAR) AS id_tut, package_name, tut_name, link, rev')->where('package_name', $package_name)->get();
+        $app = AppTut::selectRaw('CAST(id as CHAR) AS id_tut, package_name, tut_name, link, rev')->where('package_name', $package_name)->get()->toArray();
 
         if($app){
 
@@ -34,7 +34,7 @@ class AppTutController extends Controller
 
         }
 
-        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+        return response()->json($out, $out['code']);
 
     }
 
