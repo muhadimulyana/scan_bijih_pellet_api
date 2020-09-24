@@ -739,7 +739,6 @@ class BstController extends Controller
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
 
-
     public function store(Request $request) // Simpan / Tambah BST
     { // Ada 2 tambahkan PT dan Gudang yg kirim untuk set variabel
         $records = $request->all();
@@ -1152,7 +1151,7 @@ class BstController extends Controller
             $kode = $row->KODE_PELLET;
             if(!in_array($kode, $list_pellet_barcode)){
                 $items[] = [
-                    'BARCODE' => $kode,
+                    'BARCODE' => $kode . '_',
                     'KODE_PELLET' => $kode,
                     'NAMA_PELLET' => $row->NAMA_PELLET,
                     'NAMA_LABEL' => $row->NAMA_LABEL,
