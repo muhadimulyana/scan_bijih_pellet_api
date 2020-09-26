@@ -35,7 +35,7 @@ class AppInfoController extends Controller
 
         try {
             //Select untuk versi
-            $appInfo = AppInfo::whereRaw('package_name = ?', [$packageName])->selectRaw('package_name, version, message')->first();
+            $appInfo = AppInfo::whereRaw('package_name = ?', [$packageName])->selectRaw('*')->first();
             
             if($appInfo){
                 
@@ -49,7 +49,7 @@ class AppInfoController extends Controller
                 } else {
                     $out = [
                         'message' => $appInfo->message,
-                        'result' => $appInfo->message,
+                        'result' => $appInfo,
                         'status' => true,
                         'code' => 200
                     ];
