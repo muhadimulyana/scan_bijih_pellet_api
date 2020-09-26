@@ -558,7 +558,7 @@ class BstController extends Controller
 
                     //$sisa = DB::table('erasystem_2012.viewstokpellet')->selectRaw('SUM(IF(JENIS=1,QTY,-1*QTY)) AS SISA')->whereRaw('PT_ID = ? AND GUDANG = ? AND KODE_PELLET = ? AND DATE(TANGGAL) <= ?', [$newpt, $gudang, $kode, date('Y-m-d')])->first();
 
-                    $sisa = $result->SISA - $total;
+                    //$sisa = $result->SISA - $total;
 
                     $result_data = [
                         'NAMA_LABEL' => $result->NAMA_LABEL,
@@ -887,12 +887,13 @@ class BstController extends Controller
 
     }
 
-    public function getdrafBst($pt, $gudang, $dept) // ambil pt dan departemen si user login 
+    public function getdrafBst($pt, $gudang, $dept, $area) // ambil pt dan departemen si user login 
     {
         $newpt = $pt == '1' ? 'ERA' : ( $pt == '2' ? 'ERI' : 'EPI'); 
         $gudang = urldecode($gudang);
+        $area = urldecode($area);
 
-        $data = Bst::whereRaw('STATUS = ? AND PT_ID = ? AND GUDANG = ? AND DARI_DEPT_ID = ?', ['0', $newpt, $gudang, $dept])->get();
+        $data = Bst::whereRaw('STATUS = ? AND PT_ID = ? AND GUDANG = ? AND DARI_DEPT_ID = ? AND DARI_DEPT_AREA = ?', ['0', $newpt, $gudang, $dept, $area])->get();
 
         if($data->count()){
             $out = [
