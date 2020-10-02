@@ -117,6 +117,7 @@ $router->group(['prefix' => 'doi'], function() use ($router){
     $router->post('/update', 'DoiController@update');
     $router->get('/checkFinal/{notrans:[A-Za-z0-9/]+}', 'DoiController@checkFinalize');
     $router->delete('/delete/{notrans:[A-Za-z0-9/]+}', 'DoiController@delete');
+    $router->get('/getlistBarcodeKirim/{IdSo:[A-Za-z0-9/]+}', 'DoiController@getlistBarcodeKirim');
 });
 
 //User Routes
@@ -131,8 +132,3 @@ $router->group(['prefix' => 'appTut'], function () use ($router) {
     $router->post('/getTutor', 'AppTutController@getTutor');
     //$router->get('/deptScan', 'DepartemenController@getdeptScan');
 });
-
-
-
-
-

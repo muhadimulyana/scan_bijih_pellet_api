@@ -1179,6 +1179,49 @@ class DoiController extends Controller
         return response()->json($out, $out['code']);
     }
 
+    public function getlistBarcodeKirim($IdSo)
+    {
+
+        $q_soi = DB::table('erasystem_2012.soi_pellet_item')
+            ->whereRaw('soi_pellet_item.ID_SO = ?', [$IdSo])->selectRaw('KODE_PELLET, QTY AS QTY_SO')
+            ->orderBy('soi_pellet_item.KODE_PELLET')
+            ->get()
+            ->toArray();
+
+        foreach($q_soi as $row){
+
+            $q_doi = DB::table('erasystem_2012.doi_pellet_item')
+                ->leftJoin('erasystem_2012.doi_pellet', 'doi_pellet.ID_DO', '=', 'doi_pellet_item.ID_DO')
+                ->selectRaw('doi_pellet_item.KODE_PELLET, SUM(doi_pellet_item.QTY) AS QTY_DO')
+                ->whereRaw('doi_pellet.ID_SO = ? AND doi_pellet_item.KODE_PELLET = ?', [$IdSo, $row->KODE_PELLET])
+                ->groupBy('doi_pellet_item.KODE_PELLET')->orderBy('doi_pellet_item.KODE_PELLET')
+                ->first();
+
+            if($q_doi){
+                $total = $row->QTY_SO - $q_doi->QTY_DO;
+            } else {
+                $total = $row->QTY_SO;
+            }
+
+            $data[] = [
+                'KODE_PELLET' => $row->KODE_PELLET,
+                'SISA_ITEM' => $total,
+                'BARCODE' => $row->KODE_PELLET
+            ];
+
+        }
+
+        $out = [
+            'message' => 'success',
+            'result' => $data,
+            'code' => 200
+        ];
+
+        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+
+    }
+    
+
 
 
 
