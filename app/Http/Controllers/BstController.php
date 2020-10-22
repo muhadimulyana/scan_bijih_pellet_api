@@ -922,6 +922,7 @@ class BstController extends Controller
         $no_wo = $records[0]['NO_WO'];
 
         $newstatus = 'TERIMA';
+        $offline = $records[0]['NAMA_PELLET'] == null || $records[0]['NAMA_PELLET'] == '' ? true : false;
         //$barcode = $records[0]['USERNAME'];
         $newpt = $pt == '1' ? 'ERA' : ( $pt == '2' ? 'ERI' : 'EPI'); 
         $ket = null;
