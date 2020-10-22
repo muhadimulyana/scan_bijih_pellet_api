@@ -887,6 +887,165 @@ class BstController extends Controller
 
     }
 
+    public function insertBst(Request $request)
+    {
+        $records = $request->all();
+
+        $this->validate($request, [
+            //'*' => 'required|array',
+            '*.USERNAME' => 'required',
+            '*.PT_ID' => 'required',
+            '*.PT_NAMA' => 'required',
+            '*.GUDANG' => 'required',
+            '*.DARI_DEPT_ID' => 'required',
+            '*.DARI_DEPT_NAMA' => 'required',
+            '*.KE_DEPT_ID' => 'required',
+            '*.KE_DEPT_NAMA' => 'required',
+            '*.DARI_DEPT_AREA' => 'required',
+            '*.KE_DEPT_AREA' => 'required',
+            '*.STATUS' => 'required',
+            '*.DEVICE_LOGIN' => 'required'
+        ]);
+
+        // handle data bst
+        $username = $records[0]['USERNAME'];
+        $pt = $records[0]['PT_ID'];
+        $pt_nama = $records[0]['PT_NAMA'];
+        $gudang = $records[0]['GUDANG'];
+        $dari_dept_id =$records[0]['DARI_DEPT_ID'];
+        $ke_dept_id = $records[0]['KE_DEPT_ID'];
+        $dari_dept_nama = $records[0]['DARI_DEPT_NAMA'];
+        $ke_dept_nama = $records[0]['KE_DEPT_NAMA'];
+        $dari_dept_area = $records[0]['DARI_DEPT_AREA'];
+        $ke_dept_area = $records[0]['KE_DEPT_AREA'];
+        $status = $records[0]['STATUS'];
+        $no_wo = $records[0]['NO_WO'];
+
+        $newstatus = 'TERIMA';
+        //$barcode = $records[0]['USERNAME'];
+        $newpt = $pt == '1' ? 'ERA' : ( $pt == '2' ? 'ERI' : 'EPI'); 
+        $ket = null;
+
+        $datetime = date('Y-m-d H:i:s');
+        $date = date('Y-m-d');
+
+        //cari nilai max bst_pellet
+        $bst = Bst::selectRaw('CAST(MAX(RIGHT(erasystem_2012.bst_pellet.NO_BST,2)) AS SIGNED) AS LAST_NO')->whereRaw('bst_pellet.PT_ID = ? AND bst_pellet.DARI_DEPT_ID = ? AND bst_pellet.TANGGAL = ?', [$newpt, $dari_dept_id, $date])->first();
+
+        //inisialisasi tgl , bulan, tahun
+        $n_tahun = date('y', strtotime($date));
+        $n_bulan = date('m', strtotime($date));
+        $n_tanggal = date('d', strtotime($date));
+        
+        if($bst){ // Jika bst ada
+            $no = $bst->LAST_NO;
+            $no++;
+            $NoTrans = $pt . '/' . $dari_dept_id . '/BST/' . $n_tahun . '/' . $n_bulan . '/' .  $n_tanggal . '/' .  sprintf("%02s", $no);
+        } else { // Jika null
+            $NoTrans = $pt . '/' . $dari_dept_id . '/BST/' . $n_tahun . '/' . $n_bulan . '/' .  $n_tanggal . '/' .  '01';
+        }
+
+
+        //handle request barcode
+        $barcodes = array_column($records, 'BARCODE');
+        $kode_pellet = array_column($records, 'KODE_PELLET');
+        
+        $total = array_count_values($kode_pellet);
+        $list_bst = [];
+
+        $total_item = [];
+        foreach($records as $a){ // Digunakan untuk mengakumulasi KG
+
+            $pellet = DB::table('erasystem_2012.barcode_pellet')
+                ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                    $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                })
+                ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.GUDANG = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$a['BARCODE'], $newpt, $gudang, $dari_dept_id, $dari_dept_area, $newstatus, '1'])
+                ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
+                ->first();
+
+            $kg = $pellet->KG;
+            $kd_pellet = $a['KODE_PELLET'];
+
+            if(array_key_exists($kd_pellet, $total_item)){
+                $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
+            } else {
+                $total_item[$kd_pellet] = $kg;
+            }
+
+            if(!in_array($kd_pellet, array_column($list_bst, 'KODE_PELLET'))){
+                $list_bst[] = [
+                    'NO_BST' => $NoTrans, // No BST
+                    'KODE_PELLET' => $kd_pellet,
+                    'NAMA_PELLET' => $pellet->NAMA_PELLET,
+                    'NAMA_LABEL' => $pellet->NAMA_LABEL,
+                    'QTY' => $total[$kd_pellet],
+                    'SATUAN' => 'SAK',
+                    'KETERANGAN' => null
+                ];
+            } 
+
+        }
+
+        //Insert total ke list bst pellet
+        $i = 0;
+        foreach($list_bst as $rec){
+            $list_bst[$i]['KG'] = $total_item[$rec['KODE_PELLET']];
+            $i++;
+        }
+        
+        $this->_setVariable('BST', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $NoTrans, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+
+        $data_bst = [
+            'NO_BST' => $NoTrans,
+            'PT_ID' => $newpt,
+            'PT_NAMA' => $pt_nama,
+            'GUDANG' => $gudang,
+            'DARI_DEPT_ID' => $dari_dept_id,
+            'DARI_DEPT_NAMA' => $dari_dept_nama,
+            'KE_DEPT_ID' => $ke_dept_id,
+            'KE_DEPT_NAMA' => $ke_dept_nama,
+            'DARI_DEPT_AREA' => $dari_dept_area,
+            'KE_DEPT_AREA' => $ke_dept_area,
+            'KETERANGAN' => $ket,
+            'STATUS' => 0,
+            'USERNAME' => $username,
+            'LAST_UPDATE' => date('Y-m-d H:i:s'),
+            'TANGGAL' => date('Y-m-d'),
+            'TANGGAL_BUAT' => date('Y-m-d H:i:s'),
+            'TOTAL' => count($barcodes),
+            'NO_WO' => $no_wo
+        ];
+
+        DB::beginTransaction();
+
+        try {
+
+            DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
+            $insert = Bst::create($data_bst);
+            DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst);
+            DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $barcodes)->update(['LAST_UPDATE' => $datetime]);
+
+            $out = [
+                'message' => 'Submit sukses',
+                'code' => 201
+            ];
+            DB::commit();
+
+        } catch (QueryException $e) {
+
+            $out = [
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'code' => 500
+            ];
+            DB::rollBack();
+
+        }
+
+        return response()->json($out, $out['code']);
+    }
+
     public function getdrafBst($pt, $gudang, $dept, $area) // ambil pt dan departemen si user login 
     {
         $newpt = $pt == '1' ? 'ERA' : ( $pt == '2' ? 'ERI' : 'EPI'); 
@@ -1177,4 +1336,3 @@ class BstController extends Controller
 
     
 }
-
