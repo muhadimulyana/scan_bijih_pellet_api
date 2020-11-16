@@ -181,7 +181,7 @@ class BstController extends Controller
             //$area = $request->input('AREA');
 
 
-            $bst = Bst::select('GUDANG', 'KE_DEPT_ID', 'KE_DEPT_NAMA', 'KE_DEPT_AREA')->where('NO_BST', $noBst)->first();
+            $bst = Bst::select('GUDANG', 'KE_DEPT_ID', 'KE_DEPT_NAMA', 'KE_DEPT_AREA', 'TOTAL')->where('NO_BST', $noBst)->first();
             $gudang = $bst->GUDANG;
             $dariDeptId = $bst->KE_DEPT_ID;
             $dariDeptNama = $bst->KE_DEPT_NAMA;
@@ -216,32 +216,42 @@ class BstController extends Controller
             $barcode = $resbarcode->toArray();
             $listbarcode = array_column($barcode, 'BARCODE');
 
-            DB::beginTransaction();
+            if(count($listbarcode) == $bst->TOTAL){
 
-            try {
-
-                DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $device . "'"));
-                $update = Bst::where('NO_BST', $noBst)->update($data);
-                DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
-                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
-
-                $out = [
-                    'message' => 'Submit sukses',
-                    'result' => $data
-                ];
-                $code = 201;
-                DB::commit();
-
-            } catch( QueryException $e) {
-
-                $out = [
-                    'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
-                    'result' => $data
-                ];
+                DB::beginTransaction();
+    
+                try {
+    
+                    DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $device . "'"));
+                    $update = Bst::where('NO_BST', $noBst)->update($data);
+                    DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
+                    DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+    
+                    $out = [
+                        'message' => 'Submit sukses',
+                        'result' => $data
+                    ];
+                    $code = 201;
+                    DB::commit();
+    
+                } catch( QueryException $e) {
+    
+                    $out = [
+                        'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                        'result' => $data
+                    ];
+                    $code = 500;
+                    DB::rollBack();
+    
+                }
+            } else {
                 $code = 500;
-                DB::rollBack();
-
+                $out = [
+                    'message' => 'Submit gagal: jumlah barcode tidak sesuai',
+                    'result' => []
+                ];
             }
+
 
             return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
 
