@@ -812,8 +812,8 @@ class BstController extends Controller
         $barcodes = array_column($records, 'BARCODE');
         $kode_pellet = array_column($records, 'KODE_PELLET');
         $total = array_count_values($kode_pellet);
-        $list_bst = [];
 
+        $list_bst = [];
         $total_item = [];
         foreach($records as $a){ // Digunakan untuk mengakumulasi KG
 
@@ -826,22 +826,25 @@ class BstController extends Controller
                 $total_item[$kd_pellet] = $kg;
             }
 
-        }
-        
-        foreach ($records as $rec) {
-            //Jika barcode kosong apakah perlu diupdate
-            if(!in_array($rec['KODE_PELLET'], array_column($list_bst, 'KODE_PELLET'))){
+            if(!in_array($a['KODE_PELLET'], array_column($list_bst, 'KODE_PELLET'))){
                 $list_bst[] = [
                     'NO_BST' => $NoTrans, // No BST
-                    'KODE_PELLET' => $rec['KODE_PELLET'],
-                    'NAMA_PELLET' => $rec['NAMA_PELLET'],
-                    'NAMA_LABEL' => $rec['NAMA_LABEL'],
-                    'KG' => $total_item[$rec['KODE_PELLET']], //Tambahkan KG jika field sudah diupdate
-                    'QTY' => $total[$rec['KODE_PELLET']],
+                    'KODE_PELLET' => $a['KODE_PELLET'],
+                    'NAMA_PELLET' => $a['NAMA_PELLET'],
+                    'NAMA_LABEL' => $a['NAMA_LABEL'],
+                    'QTY' => $total[$a['KODE_PELLET']],
                     'SATUAN' => 'SAK',
                     'KETERANGAN' => null
                 ];
             } 
+
+        }
+
+        //Insert total ke list bst pellet
+        $i = 0;
+        foreach($list_bst as $rec){
+            $list_bst[$i]['KG'] = $total_item[$rec['KODE_PELLET']];
+            $i++;
         }
 
         $this->_setVariable('BST', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $NoTrans, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
@@ -960,10 +963,9 @@ class BstController extends Controller
         //handle request barcode
         $barcodes = array_column($records, 'BARCODE');
         $kode_pellet = array_column($records, 'KODE_PELLET');
-        
         $total = array_count_values($kode_pellet);
-        $list_bst = [];
 
+        $list_bst = [];
         $total_item = [];
         foreach($records as $a){ // Digunakan untuk mengakumulasi KG
 
