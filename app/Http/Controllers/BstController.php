@@ -962,9 +962,8 @@ class BstController extends Controller
 
         //handle request barcode
         $barcodes = array_column($records, 'BARCODE');
-        $kode_pellet = array_column($records, 'KODE_PELLET');
-        $total = array_count_values($kode_pellet);
-
+        //$kode_pellet = array_column($records, 'KODE_PELLET');
+        $kode_pellets = [];
         $list_bst = [];
         $total_item = [];
         foreach($records as $a){ // Digunakan untuk mengakumulasi KG
@@ -977,8 +976,10 @@ class BstController extends Controller
                 ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
                 ->first();
 
+
             $kg = $pellet->KG;
             $kd_pellet = $a['KODE_PELLET'];
+            array_push($kode_pellets, $kd_pellet);
 
             if(array_key_exists($kd_pellet, $total_item)){
                 $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
@@ -992,7 +993,7 @@ class BstController extends Controller
                     'KODE_PELLET' => $kd_pellet,
                     'NAMA_PELLET' => $pellet->NAMA_PELLET,
                     'NAMA_LABEL' => $pellet->NAMA_LABEL,
-                    'QTY' => $total[$kd_pellet],
+                    //'QTY' => $total[$kd_pellet],
                     'SATUAN' => 'SAK',
                     'KETERANGAN' => null
                 ];
@@ -1000,10 +1001,14 @@ class BstController extends Controller
 
         }
 
+        //Total Qty PerItem
+        $total = array_count_values($kode_pellets);
+
         //Insert total ke list bst pellet
         $i = 0;
         foreach($list_bst as $rec){
             $list_bst[$i]['KG'] = $total_item[$rec['KODE_PELLET']];
+            $list_bst[$i]['QTY'] = $total[$rec['KODE_PELLET']];
             $i++;
         }
         
