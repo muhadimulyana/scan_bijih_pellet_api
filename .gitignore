@@ -7,4 +7,4 @@ Homestead.yaml
 note.txt
 backup.txt
 .editorconfig
-.vscode
+/.vscode

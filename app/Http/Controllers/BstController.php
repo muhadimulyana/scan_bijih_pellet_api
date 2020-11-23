@@ -976,9 +976,8 @@ class BstController extends Controller
                 ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
                 ->first();
 
-
             $kg = $pellet->KG;
-            $kd_pellet = $a['KODE_PELLET'];
+            $kd_pellet = $pellet->KODE_PELLET;
             array_push($kode_pellets, $kd_pellet);
 
             if(array_key_exists($kd_pellet, $total_item)){
