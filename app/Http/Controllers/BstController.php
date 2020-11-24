@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+
 
 class BstController extends Controller
 {
@@ -216,7 +218,7 @@ class BstController extends Controller
             $barcode = $resbarcode->toArray();
             $listbarcode = array_column($barcode, 'BARCODE');
 
-            if(count($listbarcode) == $bst->TOTAL){
+            if(count($listbarcode) == $bst->TOTAL){ //Bisa dengan jumlah yg dikirimkan oleh client
 
                 DB::beginTransaction();
     
@@ -967,7 +969,7 @@ class BstController extends Controller
         $list_bst = [];
         $total_item = [];
         foreach($records as $a){ // Digunakan untuk mengakumulasi KG
-
+            
             $pellet = DB::table('erasystem_2012.barcode_pellet')
                 ->join('erasystem_2012.barcode_pellet_det', function ($join) {
                     $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
@@ -976,89 +978,106 @@ class BstController extends Controller
                 ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
                 ->first();
 
-            $kg = $pellet->KG;
-            $kd_pellet = $pellet->KODE_PELLET;
-            array_push($kode_pellets, $kd_pellet);
+            if($pellet){
 
-            if(array_key_exists($kd_pellet, $total_item)){
-                $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
-            } else {
-                $total_item[$kd_pellet] = $kg;
+                $kg = $pellet->KG;
+                $kd_pellet = $pellet->KODE_PELLET;
+                array_push($kode_pellets, $kd_pellet);
+    
+                if(array_key_exists($kd_pellet, $total_item)){
+                    $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
+                } else {
+                    $total_item[$kd_pellet] = $kg;
+                }
+    
+                if(!in_array($kd_pellet, array_column($list_bst, 'KODE_PELLET'))){
+                    $list_bst[] = [
+                        'NO_BST' => $NoTrans, // No BST
+                        'KODE_PELLET' => $kd_pellet,
+                        'NAMA_PELLET' => $pellet->NAMA_PELLET,
+                        'NAMA_LABEL' => $pellet->NAMA_LABEL,
+                        //'QTY' => $total[$kd_pellet],
+                        'SATUAN' => 'SAK',
+                        'KETERANGAN' => null
+                    ];
+                } 
+
             }
 
-            if(!in_array($kd_pellet, array_column($list_bst, 'KODE_PELLET'))){
-                $list_bst[] = [
-                    'NO_BST' => $NoTrans, // No BST
-                    'KODE_PELLET' => $kd_pellet,
-                    'NAMA_PELLET' => $pellet->NAMA_PELLET,
-                    'NAMA_LABEL' => $pellet->NAMA_LABEL,
-                    //'QTY' => $total[$kd_pellet],
-                    'SATUAN' => 'SAK',
-                    'KETERANGAN' => null
-                ];
-            } 
 
         }
 
-        //Total Qty PerItem
-        $total = array_count_values($kode_pellets);
+        if(count($kode_pellets) === count($barcodes)){
 
-        //Insert total ke list bst pellet
-        $i = 0;
-        foreach($list_bst as $rec){
-            $list_bst[$i]['KG'] = $total_item[$rec['KODE_PELLET']];
-            $list_bst[$i]['QTY'] = $total[$rec['KODE_PELLET']];
-            $i++;
-        }
-        
-        $this->_setVariable('BST', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $NoTrans, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
-
-        $data_bst = [
-            'NO_BST' => $NoTrans,
-            'PT_ID' => $newpt,
-            'PT_NAMA' => $pt_nama,
-            'GUDANG' => $gudang,
-            'DARI_DEPT_ID' => $dari_dept_id,
-            'DARI_DEPT_NAMA' => $dari_dept_nama,
-            'KE_DEPT_ID' => $ke_dept_id,
-            'KE_DEPT_NAMA' => $ke_dept_nama,
-            'DARI_DEPT_AREA' => $dari_dept_area,
-            'KE_DEPT_AREA' => $ke_dept_area,
-            'KETERANGAN' => $ket,
-            'STATUS' => 0,
-            'USERNAME' => $username,
-            'LAST_UPDATE' => date('Y-m-d H:i:s'),
-            'TANGGAL' => date('Y-m-d'),
-            'TANGGAL_BUAT' => date('Y-m-d H:i:s'),
-            'TOTAL' => count($barcodes),
-            'NO_WO' => $no_wo
-        ];
-
-        DB::beginTransaction();
-
-        try {
-
-            DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
-            $insert = Bst::create($data_bst);
-            DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst);
-            DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
-            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $barcodes)->update(['LAST_UPDATE' => $datetime]);
-
-            $out = [
-                'message' => 'Submit sukses',
-                'code' => 201
+            //Total Qty PerItem
+            $total = array_count_values($kode_pellets);
+    
+            //Insert total ke list bst pellet
+            $i = 0;
+            foreach($list_bst as $rec){
+                $list_bst[$i]['KG'] = $total_item[$rec['KODE_PELLET']];
+                $list_bst[$i]['QTY'] = $total[$rec['KODE_PELLET']];
+                $i++;
+            }
+            
+            $this->_setVariable('BST', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $NoTrans, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+    
+            $data_bst = [
+                'NO_BST' => $NoTrans,
+                'PT_ID' => $newpt,
+                'PT_NAMA' => $pt_nama,
+                'GUDANG' => $gudang,
+                'DARI_DEPT_ID' => $dari_dept_id,
+                'DARI_DEPT_NAMA' => $dari_dept_nama,
+                'KE_DEPT_ID' => $ke_dept_id,
+                'KE_DEPT_NAMA' => $ke_dept_nama,
+                'DARI_DEPT_AREA' => $dari_dept_area,
+                'KE_DEPT_AREA' => $ke_dept_area,
+                'KETERANGAN' => $ket,
+                'STATUS' => 0,
+                'USERNAME' => $username,
+                'LAST_UPDATE' => date('Y-m-d H:i:s'),
+                'TANGGAL' => date('Y-m-d'),
+                'TANGGAL_BUAT' => date('Y-m-d H:i:s'),
+                'TOTAL' => count($barcodes),
+                'NO_WO' => $no_wo
             ];
-            DB::commit();
+    
+            DB::beginTransaction();
+    
+            try {
+    
+                DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
+                $insert = Bst::create($data_bst);
+                DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst);
+                DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $barcodes)->update(['LAST_UPDATE' => $datetime]);
+    
+                $out = [
+                    'message' => 'Submit sukses',
+                    'code' => 201
+                ];
+                DB::commit();
+    
+            } catch (QueryException $e) {
+    
+                $out = [
+                    'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                    'code' => 500
+                ];
+                DB::rollBack();
+    
+            }
 
-        } catch (QueryException $e) {
+        } else {
 
             $out = [
-                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'message' => 'Terdapat barcode yang tidak sesuai',
                 'code' => 500
             ];
-            DB::rollBack();
 
         }
+
 
         return response()->json($out, $out['code']);
     }
