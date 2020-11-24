@@ -47,7 +47,7 @@ class LoginController extends Controller
             ];
 
             $out = [
-                'message' => 'success',
+                'message' => 'Login Success',
                 'result' => $data,
                 'status' => true,
                 'code' => 200,
