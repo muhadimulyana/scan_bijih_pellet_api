@@ -1258,6 +1258,192 @@ class BstController extends Controller
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
 
+    public function updateOffline(Request $request)
+    {   
+        $records = $request->all();
+
+        $this->validate($request, [
+            //'*' => 'required|array',
+            '*.USERNAME' => 'required',
+            '*.PT_ID' => 'required',
+            '*.PT_NAMA' => 'required',
+            '*.GUDANG' => 'required',
+            '*.STATUS' => 'required',
+            '*.NO_BST' => 'required',
+            '*.DEVICE_LOGIN' => 'required'
+            //'*.STATUS_BARCODE' => 'required'
+            //Butuh satu field status_barcode = "hapus" / "tambah"
+        ]);
+
+        // handle data bst
+        $NoTrans = $records[0]['NO_BST'];
+        $username = $records[0]['USERNAME'];
+        $pt = $records[0]['PT_ID'];
+        $pt_nama = $records[0]['PT_NAMA'];
+        $gudang = $records[0]['GUDANG'];
+        
+        $bst = Bst::select('DARI_DEPT_ID', 'DARI_DEPT_NAMA', 'DARI_DEPT_AREA')->where('NO_BST', $NoTrans)->first();
+        $dari_dept_id = $bst->DARI_DEPT_ID;
+        $dari_dept_nama = $bst->DARI_DEPT_NAMA;
+        $dari_dept_area = $bst->DARI_DEPT_AREA;
+        $status = 'KIRIM';
+        //$newstatus = 'TERIMA';
+        //$barcode = $records[0]['USERNAME'];
+        $newpt = $pt == '1' ? 'ERA' : ( $pt == '2' ? 'ERI' : 'EPI'); 
+        $ket = null;
+
+        $datetime = date('Y-m-d H:i:s');
+        $date = date('Y-m-d');
+
+        //Munculkan list barcode dalam bentuk array
+        $q_old = DB::table('erasystem_2012.barcode_pellet_det')
+        ->join('erasystem_2012.barcode_pellet', function ($join) {
+            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+        })
+        ->whereRaw('barcode_pellet_det.NOTRANS = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$NoTrans, 'KIRIM', '1'])
+        ->select('barcode_pellet_det.BARCODE')->get();
+        $arr_q_old = $q_old->toArray();
+        $old_barcode = array_column($arr_q_old, 'BARCODE');
+
+        //handle request barcode
+        //$barcodes = array_column($records, 'BARCODE'); // Barcode yg ditambahkan
+        //$kode_pellet = array_column($records, 'KODE_PELLET'); // Kode pellet 13 digit
+        $add_barcode = []; //Barcode yg ditambahkan
+        $del_barcodes = []; // Barcode yg dihapus
+        $count_barcode =  []; //Jumlah Barcode
+        $list_bst = []; //List barcode yg akan dimasukkan kedalam bst_item
+        $a_total = []; //List Kode Pellet
+        $total_item = []; // Total KG untuk bst list item
+    
+        // foreach($records as $rec){
+        //     if($rec['STATUS_BARCODE'] == 1){      
+        //     }
+        // }
+
+        //Untuk membedakan mana yg dihapus dan ditambah bisa disini
+        foreach ($records as $rec) {
+
+            if($rec['STATUS_BARCODE'] == 1){
+
+                if(!in_array($rec['BARCODE'], $old_barcode)){
+                    $pellet = DB::table('erasystem_2012.barcode_pellet')
+                    ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                        $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                    })
+                    ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.GUDANG = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$rec['BARCODE'], $newpt, $gudang, $dari_dept_id, $dari_dept_area, 'TERIMA', '1'])
+                    ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
+                    ->first();
+                    ($pellet) ? array_push($add_barcode, $rec['BARCODE']) : ''; //Masukan barcode baru ke list barcode
+                } else {
+                    $pellet = DB::table('erasystem_2012.barcode_pellet_det')
+                    ->join('erasystem_2012.barcode_pellet', function ($join) {
+                        $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                    })
+                    ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$rec['BARCODE'], $NoTrans, 'KIRIM', '1'])
+                    ->selectRaw('barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG')->first();
+                }
+
+                array_push($count_barcode, $rec['BARCODE']);
+
+                if($pellet){
+
+                    $kg = $pellet->KG;
+                    $kd_pellet = $pellet->KODE_PELLET;
+    
+                    array_push($a_total, $kd_pellet);
+    
+                    if(array_key_exists($kd_pellet, $total_item)){
+                        $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
+                    } else {
+                        $total_item[$kd_pellet] = $kg;
+                    }
+    
+                    if(!in_array($kd_pellet, array_column($list_bst, 'KODE_PELLET'))){
+                        $list_bst[] = [
+                            'NO_BST' => $NoTrans, // No BST
+                            'KODE_PELLET' => $kd_pellet,
+                            'NAMA_PELLET' => $pellet->NAMA_PELLET,
+                            'NAMA_LABEL' => $pellet->NAMA_LABEL,
+                            //'KG' => $total_item[$rec['KODE_PELLET']], //Tambahkan KG jika field sudah diupdate
+                            //'QTY' => $total[$rec['KODE_PELLET']],
+                            'SATUAN' => 'SAK',
+                            'KETERANGAN' => null
+                        ];
+                    } 
+
+                }
+
+
+            } else {
+                array_push($del_barcodes, $rec['BARCODE']); // Masukkan barcode yg dihapus ke dalam array del_barcodes
+            }
+            
+        }
+
+        if(count($count_barcode) == count($a_total)){
+
+            $total = array_count_values($a_total);
+
+            $i = 0;
+            foreach($list_bst as $rec){
+                $list_bst[$i]['KG'] = $total_item[$rec['KODE_PELLET']];
+                $list_bst[$i]['QTY'] = $total[$rec['KODE_PELLET']];
+                $i++;
+            }
+    
+            $this->_setVariable('BST', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $NoTrans, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+    
+            $data_bst = [
+                'NO_BST' => $NoTrans,
+                //'USERNAME' => $username,
+                'LAST_UPDATE' => date('Y-m-d H:i:s'),
+                'TOTAL' => count($count_barcode)
+            ];
+    
+            DB::beginTransaction();
+    
+            try {
+    
+                DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $records[0]['DEVICE_LOGIN'] . "'"));
+                $update = Bst::where('NO_BST', $NoTrans)->update($data_bst);
+                //DB::table('erasyste_2012.bst_pellet_item')->delete
+                DB::table('erasystem_2012.bst_pellet_item')->where('NO_BST', $NoTrans)->delete();
+                DB::table('erasystem_2012.bst_pellet_item')->insert($list_bst); // Delete list bst dan masukkan kembali
+    
+                DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $add_barcode)->update(['LAST_UPDATE' => $datetime]);
+                
+                DB::statement(DB::raw("SET @AKSI='HAPUS'"));
+                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
+    
+                $out = [
+                    'message' => 'Submit sukses',
+                    'code' => 200
+                ];
+                DB::commit();
+    
+            } catch ( QueryException $e) {
+    
+                $out = [
+                    'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                    'code' => 500
+                ];
+                DB::rollBack();
+    
+            }
+
+        } else {
+
+            $out = [
+                'message' => 'Submit gagal: Terdapat barcode yang tidak sesuai!',
+                'code' => 500
+            ];
+
+        }
+
+        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+    }
+
     public function delete($notrans, $userid, $userdevice)
     {
         $resbarcode = DB::table('erasystem_2012.barcode_pellet')
