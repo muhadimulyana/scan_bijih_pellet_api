@@ -193,7 +193,7 @@ class BarcodePelletDetController extends Controller
 
             return response()->json($out, [], JSON_NUMERIC_CHECK);
 
-        };
+        }
     }
     
     // public function checkBarcode($barcode, $notrans)
