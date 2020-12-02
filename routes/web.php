@@ -63,7 +63,7 @@ $router->group(['prefix' => 'barcodePelletDet'], function () use ($router) {
 $router->group(['prefix' => 'bst'], function () use ($router) {
     $router->get('/getBst/{pt}/{gudang}/{dept}/{area}', 'BstController@bstKirim');
     $router->get('/getbstUser/{pt}/{dept}', 'BstController@getbstUser');
-    $router->get('/getDraf/{pt}/{gudang}/{dept}/{area}', 'BstController@getdrafBst');
+    $router->get('/getDraf/{pt}/{gudang}/{dept}/{area}/{tujuan}', 'BstController@getdrafBst');
     $router->post('/terima', 'BstController@terimaBst');
     $router->post('/update', 'BstController@update');
     $router->post('/kirim', 'BstController@store');
