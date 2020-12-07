@@ -260,6 +260,127 @@ class BstController extends Controller
         }
     }
 
+    public function terimaBstOffline(Request $request)
+    {
+        if($request->method('post')) {
+
+            //Status terima minimal
+            // $this->validate($request, [
+            //     'USERNAME' => 'required',
+            //     'PT_ID' => 'required',
+            //     'PT_NAMA' => 'required',
+            //     'GUDANG' => 'required',
+            //     'STATUS' => 'required',
+            //     'NOTRANS' => 'required',
+            //     'DEVICE_LOGIN' => 'required'
+            // ]);
+
+            $records = $request->all();
+
+            $this->validate($request, [
+                //'*' => 'required|array',
+                '*.USERNAME' => 'required',
+                '*.PT_ID' => 'required',
+                '*.PT_NAMA' => 'required',
+                '*.GUDANG' => 'required',
+                '*.NOTRANS' => 'required',
+                '*.STATUS' => 'required',
+                '*.DEVICE_LOGIN' => 'required'
+            ]);
+
+            $status = $records[0]['STATUS'];
+            $username = $records[0]['USERNAME'];
+            $noBst =$records[0]['NOTRANS'];
+            $ptId = $records[0]['PT_ID'];
+            $ptNama = $records[0]['PT_NAMA'];
+            $device = $records[0]['DEVICE_LOGIN'];
+            //$gudang = $request->input('GUDANG');
+            //$area = $request->input('AREA');
+
+
+            $bst = Bst::select('GUDANG', 'KE_DEPT_ID', 'KE_DEPT_NAMA', 'KE_DEPT_AREA', 'TOTAL')->where('NO_BST', $noBst)->first();
+            $gudang = $bst->GUDANG;
+            $dariDeptId = $bst->KE_DEPT_ID;
+            $dariDeptNama = $bst->KE_DEPT_NAMA;
+            $dariDeptArea = $bst->KE_DEPT_AREA;
+
+            $ket = $request->input('KETERANGAN');
+            $datetime = date('Y-m-d H:i:s');
+            $date = date('Y-m-d'); 
+
+            $newpt = $ptId == '1' ? 'ERA' : ( $ptId == '2' ? 'ERI' : 'EPI'); 
+
+            //Set variabel tambahkan area
+            $this->_setVariable('BST', $newpt, $ptNama, $gudang, $dariDeptId, $dariDeptNama, $dariDeptArea, $noBst, $username, $status, $ket);
+
+            $data = [
+                'STATUS' => 2,
+                'TERIMA_FINAL' => $username,
+                'TERIMA_FINAL_TANGGAL' => $datetime,
+                'LAST_UPDATE' => $datetime
+            ];
+
+            $newstatus = 'KIRIM';
+
+            //Perlukah cari barcode berdasarkan join dan where dari dept/ke dept || Perbaiki seleksi barcode
+            $resbarcode = DB::table('erasystem_2012.barcode_pellet')
+            ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+            })
+            ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet.AKTIF = ?', [$newstatus, $noBst, '1'])
+            ->selectRaw('barcode_pellet_det.BARCODE')
+            ->get();
+            $barcode = $resbarcode->toArray();
+            $listbarcode = array_column($barcode, 'BARCODE');
+            $scanbarcode = $records['BARCODE'];
+
+            //change to unique array
+            $listbarcode = array_unique($listbarcode);
+            $scanbarcode = array_unique($scanbarcode);
+            $diff = array_diff($listbarcode, $scanbarcode);
+
+            if(count($diff) > 0){ //Bisa dengan jumlah yg dikirimkan oleh client
+
+                DB::beginTransaction();
+    
+                try {
+    
+                    DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $device . "'"));
+                    $update = Bst::where('NO_BST', $noBst)->update($data);
+                    DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
+                    DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE',  $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+    
+                    $out = [
+                        'message' => 'Submit sukses',
+                        'result' => $data
+                    ];
+                    $code = 201;
+                    DB::commit();
+    
+                } catch( QueryException $e) {
+    
+                    $out = [
+                        'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                        'result' => $data
+                    ];
+                    $code = 500;
+                    DB::rollBack();
+    
+                }
+            } else {
+                $code = 500;
+                $out = [
+                    'message' => 'Submit gagal: jumlah barcode tidak sesuai',
+                    'result' => []
+                ];
+            }
+
+
+            return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
+
+        }
+    }
+
 
     public function checkBarcode(Request $request) // cek barcode ketika akan kirim || cari barcode berdasarkan data pengirim yg login PT, Gudang, Dept dan Area
     {

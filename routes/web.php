@@ -79,6 +79,7 @@ $router->group(['prefix' => 'bst'], function () use ($router) {
     $router->get('/getlistBarcode/{pt}/{gudang}/{dep}/{status}/{notrans:[A-Za-z0-9/]+}', 'BstController@getlistBarcode');
     $router->post('/kirimOffline', 'BstController@insertBst');
     $router->post('/updateOffline', 'BstController@updateOffline');
+    $router->post('/terimaOffline', 'BstController@terimaBstOffline');
     //$router->post('/submit', 'BstController@store');
 });
 // $router->get('/getBst', 'BstController@bstKirim');
