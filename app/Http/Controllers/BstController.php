@@ -332,14 +332,14 @@ class BstController extends Controller
             ->get();
             $barcode = $resbarcode->toArray();
             $listbarcode = array_column($barcode, 'BARCODE');
-            $scanbarcode = $records['BARCODE'];
+            $scanbarcode = array_column($records, 'BARCODE');
 
             //change to unique array
             $listbarcode = array_unique($listbarcode);
             $scanbarcode = array_unique($scanbarcode);
-            $diff = array_diff($listbarcode, $scanbarcode);
+            $diff = array_diff($scanbarcode, $listbarcode);
 
-            if(count($diff) > 0){ //Bisa dengan jumlah yg dikirimkan oleh client
+            if(count($diff) == 0){ //Bisa dengan jumlah yg dikirimkan oleh client
 
                 DB::beginTransaction();
     
@@ -370,8 +370,8 @@ class BstController extends Controller
             } else {
                 $code = 500;
                 $out = [
-                    'message' => 'Submit gagal: jumlah barcode tidak sesuai',
-                    'result' => []
+                    'message' => 'Submit gagal: terdapat barcode yang tidak sesuai',
+                    'result' => $diff
                 ];
             }
 
