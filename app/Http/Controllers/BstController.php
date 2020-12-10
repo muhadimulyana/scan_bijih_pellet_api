@@ -335,9 +335,10 @@ class BstController extends Controller
             $scanbarcode = array_column($records, 'BARCODE');
 
             //change to unique array
-            $listbarcode = array_unique($listbarcode);
-            $scanbarcode = array_unique($scanbarcode);
+            // $listbarcode = array_unique($listbarcode);
+            // $scanbarcode = array_unique($scanbarcode);
             $diff = array_diff($scanbarcode, $listbarcode);
+
 
             if(count($diff) == 0){ //Bisa dengan jumlah yg dikirimkan oleh client
 
@@ -352,7 +353,7 @@ class BstController extends Controller
     
                     $out = [
                         'message' => 'Submit sukses',
-                        'result' => $data
+                        'result' => []
                     ];
                     $code = 201;
                     DB::commit();
@@ -361,13 +362,14 @@ class BstController extends Controller
     
                     $out = [
                         'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
-                        'result' => $data
+                        'result' => []
                     ];
                     $code = 500;
                     DB::rollBack();
     
                 }
             } else {
+                $diff = array_values($diff);
                 $code = 500;
                 $out = [
                     'message' => 'Submit gagal: terdapat barcode yang tidak sesuai',
