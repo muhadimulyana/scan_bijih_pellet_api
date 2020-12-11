@@ -59,7 +59,7 @@ $router->group(['prefix' => 'barcodePelletDet'], function () use ($router) {
     $router->post('/checkBarcode', 'BarcodePelletDetController@checkBarcode');
 });
 
-//BST 
+//BST
 $router->group(['prefix' => 'bst'], function () use ($router) {
     $router->get('/getBst/{pt}/{gudang}/{dept}/{area}', 'BstController@bstKirim');
     $router->get('/getbstUser/{pt}/{dept}', 'BstController@getbstUser');
@@ -100,7 +100,7 @@ $router->group(['prefix' => 'area'], function () use ($router) {
 });
 
 //Router DO
-$router->group(['prefix' => 'doi'], function() use ($router){
+$router->group(['prefix' => 'doi'], function () use ($router) {
     $router->get('/', 'DoiController@test');
     //Terima
     $router->get('/getlistdoiUser/{pt}/{gudang}', 'DoiController@getlistdoiUser');
@@ -121,6 +121,7 @@ $router->group(['prefix' => 'doi'], function() use ($router){
     $router->get('/checkFinal/{notrans:[A-Za-z0-9/]+}', 'DoiController@checkFinalize');
     $router->delete('/delete/{notrans:[A-Za-z0-9/]+}', 'DoiController@delete');
     $router->get('/getlistBarcodeKirim/{IdSo:[A-Za-z0-9/]+}', 'DoiController@getlistBarcodeKirim');
+    $router->post('/kirimOffline', 'DoiController@storeOffline');
 });
 
 //User Routes
@@ -128,7 +129,6 @@ $router->group(['prefix' => 'users'], function () use ($router) {
     $router->get('/checkPin/{username}/{pin}', 'UsersController@checkPin');
     //$router->get('/deptScan', 'DepartemenController@getdeptScan');
 });
-
 
 //Tutor Routes
 $router->group(['prefix' => 'appTut'], function () use ($router) {
