@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\BarcodePelletDet;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -15,12 +16,12 @@ class BarcodePelletDetController extends Controller
 
         return response()->json($result);
     }
-    
+
     public function getlistBarcode($pt, $gudang, $dep, $status, $notrans)
     {
         $gudang = urldecode($gudang);
         $newstatus = $status == 'TERIMA' ? 'KIRIM' : 'KIRIM';
-        $newpt = $pt == '1' ? 'ERA' : 'ERI'; 
+        $newpt = $pt == '1' ? 'ERA' : 'ERI';
 
         $result = DB::table('erasystem_2012.barcode_pellet')
             ->join('erasystem_2012.barcode_pellet_det', function ($join) {
@@ -29,27 +30,27 @@ class BarcodePelletDetController extends Controller
             ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet.AKTIF = ?', [$newstatus, $notrans, '1'])
             ->selectRaw('barcode_pellet_det.BARCODE, barcode_pellet.KODE_PELLET, barcode_pellet.NAMA_PELLET, barcode_pellet.NAMA_LABEL, barcode_pellet.KG')
             ->get()->toArray();
-        
+
         $bst = DB::table('erasystem_2012.bst_pellet')->where('NO_BST', $notrans)->first();
 
-        if(count($result) == $bst->TOTAL){
+        if (count($result) == $bst->TOTAL) {
 
             $out = [
                 'message' => 'success',
-                'result' => $result
+                'result' => $result,
             ];
-        
+
         } else {
 
             $res = [];
             $list_bst = DB::table('erasystem_2012.bst_pellet_item')->where('NO_BST', $notrans)->get();
             $area = $bst->DARI_DEPT_AREA;
 
-            foreach($list_bst as $row){
+            foreach ($list_bst as $row) {
 
                 $item = $row->KODE_PELLET;
                 $jml_item = $row->QTY;
-                
+
                 $barcode = DB::table('erasystem_2012.barcode_pellet')
                     ->join('erasystem_2012.barcode_pellet_det', function ($join) {
                         $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
@@ -69,17 +70,16 @@ class BarcodePelletDetController extends Controller
                 $jml_barcode = $barcode->JML_BARCODE;
                 $iterasi = $jml_item - $jml_barcode;
 
-                for( $i=1; $i <= $iterasi; $i++ ){
+                for ($i = 1; $i <= $iterasi; $i++) {
 
                     $data[] = [
                         'BARCODE' => $item . ' (' . $i . ')',
                         'KODE_PELLET' => $item,
                         'NAMA_PELLET' => $pellet->NAMA_PELLET,
                         'NAMA_LABEL' => $pellet->NAMA_LABEL,
-                        'KG' => 25
+                        'KG' => 25,
                     ];
                 }
-                
 
             }
 
@@ -88,13 +88,13 @@ class BarcodePelletDetController extends Controller
 
             $out = [
                 'message' => 'success',
-                'result' => $result
+                'result' => $result,
             ];
 
         }
-        
+
         return response()->json($out, 200, [], JSON_NUMERIC_CHECK);
-        
+
     }
 
     public function checkBarcode(Request $request)
@@ -102,28 +102,28 @@ class BarcodePelletDetController extends Controller
         $barcode = $request->input('BARCODE');
 
         $check1 = DB::table('erasystem_2012.barcode_pellet')
-        ->join('erasystem_2012.barcode_pellet_det', function ($join) {
-            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
-        })
-        ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
-        ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
-        ->first();
+            ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+            })
+            ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
+            ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
+            ->first();
 
-        if($check1){
+        if ($check1) {
             $out = [
                 'message' => 'Detail status barcode saat ini:',
                 'result' => $check1,
-                'isRegistered' => TRUE,
-                'status' => FALSE,
-                'code' => 200
+                'isRegistered' => true,
+                'status' => false,
+                'code' => 200,
             ];
         } else {
             $out = [
                 'message' => 'Barcode tidak terdaftar!',
                 'result' => [],
-                'isRegistered' => FALSE,
-                'status' => FALSE,
-                'code' => 200
+                'isRegistered' => false,
+                'status' => false,
+                'code' => 200,
             ];
         }
 
@@ -195,7 +195,7 @@ class BarcodePelletDetController extends Controller
 
         }
     }
-    
+
     // public function checkBarcode($barcode, $notrans)
     // {
     //     $result = BarcodePelletDet::whereRaw('BARCODE = ? AND NOTRANS = ?', [$barcode, $notrans])->first();
@@ -216,5 +216,50 @@ class BarcodePelletDetController extends Controller
 
     //     return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     // }
+
+    public function nonAktifBarcode(Request $request)
+    {
+        $records = $request->all();
+
+        $this->validate($request, [
+            '*.USERNAME' => 'required',
+            '*.KETERANGAN' => 'required',
+            '*.BARCODE' => 'required',
+        ]);
+
+        $barcode = array_column($records, 'BARCODE');
+
+        $data = [
+            'USERNAME' => $records[0]['USERNAME'],
+            'KETERANGAN' => $records[0]['BARCODE'],
+            'AKTIF' => 0,
+        ];
+
+        DB::beginTransaction();
+
+        try {
+
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $barcode)->update($data);
+
+            $out = [
+                'message' => 'Submit sukses',
+                'result' => [],
+            ];
+            $code = 201;
+            DB::commit();
+
+        } catch (QueryException $e) {
+
+            $out = [
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'result' => $data,
+            ];
+            $code = 500;
+            DB::rollBack();
+
+        }
+
+        return response()->json($out, []);
+    }
 
 }

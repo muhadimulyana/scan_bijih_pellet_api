@@ -57,6 +57,7 @@ $router->group(['prefix' => 'barcodePelletDet'], function () use ($router) {
     $router->get('/getlistBarcode/{pt}/{gudang}/{dep}/{status}/{notrans:[A-Za-z0-9/]+}', 'BarcodePelletDetController@getlistBarcode');
     $router->get('/getPellet', 'BarcodePelletDetController@getkodePellet');
     $router->post('/checkBarcode', 'BarcodePelletDetController@checkBarcode');
+    $router->post('/nonAktif', 'BarcodePelletDetController@nonAktifBarcode');
 });
 
 //BST
