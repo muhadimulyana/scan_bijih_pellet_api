@@ -259,7 +259,7 @@ class BarcodePelletDetController extends Controller
 
         }
 
-        return response()->json($out, []);
+        return response()->json($out, $code, []);
     }
 
 }
