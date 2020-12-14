@@ -217,6 +217,72 @@ class BarcodePelletDetController extends Controller
     //     return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     // }
 
+    public function checkBarcodeNonAktif(Request $request)
+    {
+        $pt = $request->input('PT_ID');
+        //$gudang = $request->input('GUDANG');
+        $dept = 'QUA';
+        $area = 'In Process';
+        $barcode = $request->input('BARCODE');
+        $newstatus = 'TERIMA';
+        $newpt = $pt == '1' ? 'ERA' : ($pt == '2' ? 'ERI' : 'EPI');
+
+        $check1 = DB::table('erasystem_2012.barcode_pellet')
+            ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+            })
+            ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet.AKTIF = ?', [$barcode, '1'])
+            ->selectRaw("barcode_pellet_det.PT_ID, barcode_pellet_det.PT_NAMA, barcode_pellet_det.GUDANG, barcode_pellet_det.DEPT_ID, barcode_pellet_det.DEPT_NAMA, barcode_pellet_det.DEPT_AREA, barcode_pellet_det.STATUS")
+            ->first();
+
+        if ($check1) {
+
+            $result = DB::table('erasystem_2012.barcode_pellet')
+                ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                    $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                })
+                ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$barcode, $newpt, $dept, $area, $newstatus, '1'])
+                ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
+                ->first();
+
+            if ($result) {
+
+                $out = [
+                    'message' => 'success',
+                    //'result' => $result,
+                    'status' => true,
+                    'code' => 200,
+                    'isRegistered' => true,
+                ];
+
+            } else {
+
+                $out = [
+                    'message' => 'Barcode tidak tersedia untuk area ' . $area . '. Detail status barcode saat ini: ',
+                    //'result' => $check1,
+                    'status' => false,
+                    'code' => 200,
+                    'isRegistered' => true,
+                ];
+
+            }
+
+        } else {
+
+            $out = [
+                'message' => 'Barcode tidak terdaftar!',
+                //'result' => [],
+                'status' => false,
+                'code' => 200,
+                'isRegistered' => false,
+            ];
+
+        }
+
+        return response()->json($out, $out['code'], []);
+
+    }
+
     public function nonAktifBarcode(Request $request)
     {
         $records = $request->all();
@@ -231,7 +297,7 @@ class BarcodePelletDetController extends Controller
 
         $data = [
             'USERNAME' => $records[0]['USERNAME'],
-            'KETERANGAN' => $records[0]['BARCODE'],
+            'KETERANGAN' => $records[0]['KETERANGAN'],
             'AKTIF' => 0,
         ];
 
