@@ -368,6 +368,12 @@ class BarcodePelletDetController extends Controller
 
         $max_old_barcode = DB::table('erasystem_2012.barcode_pellet')->selectRaw('CAST(MAX(RIGHT(BARCODE, 4)) AS SIGNED) AS LAST_NO')->whereRaw('DATE(TANGGAL) = ?', [date('Y-m-d')])->first(); // Get last no urut barcode hari ini
 
+        if ($max_old_barcode) {
+            $no_urut = $max_old_barcode->LAST_NO + 1; // Jika ada no urut hari ini tambahkan 1
+        } else {
+            $no_urut = 1; // Jika tidak ada set menjadi 1
+        }
+
         foreach ($records as $row) { // fetch and loop record
 
             $year_barcode = '20' . substr($row['BARCODE'], 22, 2); // digit year
@@ -381,12 +387,6 @@ class BarcodePelletDetController extends Controller
             $date_barcode = $year_barcode . '-' . $month_barcode . '-' . $day_barcode; // tanggal barcode
 
             $pellet = DB::table('erasystem_2012.pellet')->select('NAMA_LABEL', 'NAMA')->where('KODE', $row['KODE_PELLET2'])->first(); //Get nama pellet dan label dari master kode pellet
-
-            if ($max_old_barcode) {
-                $no_urut = $max_old_barcode->LAST_NO + 1; // Jika ada no urut hari ini tambahkan 1
-            } else {
-                $no_urut = 1; // Jika tidak ada ubah menjadi 1
-            }
 
             $new_barcode = $row['KODE_PELLET2'] . '.' . $row['PT_ID'] . '.' . $group1 . $group2 . '.' . $mesin . '.' . $str_date_barcode . '.' . sprintf("%04s", $no_urut); // Barcode baru
 
