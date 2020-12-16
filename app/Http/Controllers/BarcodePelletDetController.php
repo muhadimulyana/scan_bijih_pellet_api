@@ -328,4 +328,132 @@ class BarcodePelletDetController extends Controller
         return response()->json($out, $code, []);
     }
 
+    public function downGradeBarcode(Request $request)
+    {
+        $records = $request->all();
+
+        $this->validate($request, [
+            //'*' => 'required|array',
+            '*.USERNAME' => 'required',
+            '*.PT_ID' => 'required',
+            '*.PT_NAMA' => 'required',
+            '*.GUDANG' => 'required',
+            '*.BARCODE' => 'required',
+            '*.KODE_PELLET' => 'required',
+            '*.NAMA_PELLET' => 'required',
+            '*.NAMA_LABEL' => 'required',
+            '*.KG' => 'required',
+            //'*.GROUP1' => 'required',
+            //'*.GROUP2' => 'required',
+            //'*.MESIN' => 'required',
+            '*.KODE_PELLET2' => 'required',
+        ]);
+
+        // handle data bst
+        $username = $records[0]['USERNAME'];
+        $pt = $records[0]['PT_ID'];
+        $pt_nama = $records[0]['PT_NAMA'];
+        $gudang = $records[0]['GUDANG'];
+        $dept = 'QUA';
+        $dept_nama = 'Quality Assurance';
+        $newpt = $pt == '1' ? 'ERA' : ($pt == '2' ? 'ERI' : 'EPI');
+        $barcode = array_column($records, 'BARCODE');
+
+        $data_non = [
+            'USERNAME' => $records[0]['USERNAME'],
+            'AKTIF' => 0,
+        ];
+
+        foreach ($records as $row) {
+
+            $year_barcode = '20' . substr($row['BARCODE'], 22, 2);
+            $month_barcode = substr($row['BARCODE'], 25, 2);
+            $day_barcode = substr($row['BARCODE'], 28, 2);
+            $group1 = substr($row['BARCODE'], 16, 1);
+            $group2 = substr($row['BARCODE'], 17, 1);
+            $mesin = substr($row['BARCODE'], 19, 2);
+
+            $str_date_barcode = substr($row['BARCODE'], 22, 8);
+            $date_barcode = $year_barcode . '-' . $month_barcode . '-' . $day_barcode;
+
+            $max_old_barcode = DB::table('erasystem_2012.barcode_pellet')->selectRaw('CAST(MAX(RIGHT(BARCODE, 4)) AS SIGNED) AS LAST_NO')->whereRaw('DATE(TANGGAL) = ?', [date('Y-m-d')])->first();
+
+            $pellet = DB::table('erasystem_2012.pellet')->select('NAMA_LABEL', 'NAMA')->where('KODE', $row['KODE_PELLET2'])->first();
+
+            if ($max_old_barcode) {
+                $no_urut = $max_old_barcode->LAST_NO + 1;
+                $no_urut = sprintf("%04s", $no_urut);
+            } else {
+                $no_urut = '0001';
+            }
+
+            $new_barcode = $row['KODE_PELLET2'] . '.' . $row['PT_ID'] . '.' . $group1 . $group2 . '.' . $mesin . '.' . $str_date_barcode . '.' . $no_urut;
+
+            $data_newbarcode[] = [
+                'BARCODE' => $new_barcode,
+                'TANGGAL_BUAT' => date('Y-m-d H:i:s'),
+                'TANGGAL' => date('Y:m:d H:i:s'),
+                'PT_ID' => $newpt,
+                'PT_NAMA' => $pt_nama,
+                'GUDANG' => $gudang,
+                'DEPT_ID' => $dept,
+                'DEPT_NAMA' => $dept_nama,
+                'KODE_PELLET' => $row['KODE_PELLET2'],
+                'NAMA_PELLET' => $pellet->NAMA,
+                'NAMA_LABEL' => $pellet->NAMA_LABEL,
+                'KG' => $row['KG'],
+                'GROUP1' => $group1,
+                'GROUP2' => $group2,
+                'MESIN' => $mesin,
+                'USERNAME' => $row['USERNAME'],
+                'KETERANGAN' => 'Pengganti barcode ' . $row['BARCODE'],
+                'LAST_UPDATE' => date('Y-m-d H:i:s'),
+            ];
+
+            $data_log[] = [
+                'TANGGAL' => date('Y-m-d H:i:s'),
+                'BARCODE_BARU' => $new_barcode,
+                'KODE_PELLET_BARU' => $row['KODE_PELLET2'],
+                'NAMA_PELLET_BARU' => $pellet->NAMA,
+                'LABEL_PELLET_BARU' => $pellet->NAMA_LABEL,
+                'BARCODE_LAMA' => $row['BARCODE'],
+                'KODE_PELLET_LAMA' => $row['KODE_PELLET'],
+                'NAMA_PELLET_LAMA' => $row['NAMA_PELLET'],
+                'LABEL_PELLET_LAMA' => $row['NAMA_LABEL'],
+                'KETERANGAN' => 'Pengganti barcode ' . $row['BARCODE'],
+            ];
+
+        }
+
+        DB::beginTransaction();
+
+        try {
+
+            DB::statement(DB::raw("SET @UserLoginAktif='" . $username . "'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $barcode)->update($data_non);
+            DB::table('erasystem_2012.barcode_pellet')->insert($data_newbarcode);
+            DB::table('erasystem_2012.barcode_pellet_perubahan')->insert($data_log);
+
+            $out = [
+                'message' => 'Submit sukses',
+                'result' => [],
+            ];
+            $code = 201;
+            DB::commit();
+
+        } catch (QueryException $e) {
+
+            $out = [
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'result' => [],
+            ];
+            $code = 500;
+            DB::rollBack();
+
+        }
+
+        return response()->json($out, $code, []);
+
+    }
+
 }
