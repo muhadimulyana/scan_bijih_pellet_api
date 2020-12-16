@@ -59,7 +59,7 @@ $router->group(['prefix' => 'barcodePelletDet'], function () use ($router) {
     $router->post('/checkBarcode', 'BarcodePelletDetController@checkBarcode');
     $router->post('/nonAktif', 'BarcodePelletDetController@nonAktifBarcode');
     $router->post('/checkNonAktif', 'BarcodePelletDetController@checkBarcodeNonAktif');
-    $router->post('/downGrade', 'BarcodePelletDetController@downGradeBarcode');
+    $router->post('/updateGrade', 'BarcodePelletDetController@updateGradeBarcode');
 
 });
 

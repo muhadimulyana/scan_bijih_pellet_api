@@ -328,7 +328,12 @@ class BarcodePelletDetController extends Controller
         return response()->json($out, $code, []);
     }
 
-    public function downGradeBarcode(Request $request)
+    public function checkBarcodeUpdate(Request $request)
+    {
+
+    }
+
+    public function updateGradeBarcode(Request $request)
     {
         $records = $request->all();
 
