@@ -344,55 +344,51 @@ class BarcodePelletDetController extends Controller
             '*.PT_NAMA' => 'required',
             '*.GUDANG' => 'required',
             '*.BARCODE' => 'required',
-            '*.KODE_PELLET' => 'required',
-            '*.NAMA_PELLET' => 'required',
-            '*.NAMA_LABEL' => 'required',
-            '*.KG' => 'required',
-            //'*.GROUP1' => 'required',
-            //'*.GROUP2' => 'required',
-            //'*.MESIN' => 'required',
-            '*.KODE_PELLET2' => 'required',
+            '*.KODE_PELLET' => 'required', //Kode pellet lama
+            '*.NAMA_PELLET' => 'required', // Nama pellet lama
+            '*.NAMA_LABEL' => 'required', // Nama label lama
+            '*.KG' => 'required', // KG dari hasil scan
+            '*.KODE_PELLET2' => 'required', // Kode pellet baru
         ]);
 
         // handle data bst
         $username = $records[0]['USERNAME'];
-        $pt = $records[0]['PT_ID'];
-        $pt_nama = $records[0]['PT_NAMA'];
-        $gudang = $records[0]['GUDANG'];
-        $dept = 'QUA';
-        $dept_nama = 'Quality Assurance';
+        $pt = $records[0]['PT_ID']; //PT dari user login
+        $pt_nama = $records[0]['PT_NAMA']; // Same
+        $gudang = $records[0]['GUDANG']; // Gudang dari pilihan dan dibuat default yg login
+        $dept = 'QUA'; //Default
+        $dept_nama = 'Quality Assurance'; //Default
         $newpt = $pt == '1' ? 'ERA' : ($pt == '2' ? 'ERI' : 'EPI');
-        $barcode = array_column($records, 'BARCODE');
+        $barcode = array_column($records, 'BARCODE'); //Array barcode untuk nonaktif barcode lama
 
         $data_non = [
             'USERNAME' => $records[0]['USERNAME'],
             'AKTIF' => 0,
-        ];
+        ]; // Data non aktif barcode
 
-        foreach ($records as $row) {
+        $max_old_barcode = DB::table('erasystem_2012.barcode_pellet')->selectRaw('CAST(MAX(RIGHT(BARCODE, 4)) AS SIGNED) AS LAST_NO')->whereRaw('DATE(TANGGAL) = ?', [date('Y-m-d')])->first(); // Get last no urut barcode hari ini
 
-            $year_barcode = '20' . substr($row['BARCODE'], 22, 2);
-            $month_barcode = substr($row['BARCODE'], 25, 2);
-            $day_barcode = substr($row['BARCODE'], 28, 2);
-            $group1 = substr($row['BARCODE'], 16, 1);
-            $group2 = substr($row['BARCODE'], 17, 1);
-            $mesin = substr($row['BARCODE'], 19, 2);
+        foreach ($records as $row) { // fetch and loop record
 
-            $str_date_barcode = substr($row['BARCODE'], 22, 8);
-            $date_barcode = $year_barcode . '-' . $month_barcode . '-' . $day_barcode;
+            $year_barcode = '20' . substr($row['BARCODE'], 22, 2); // digit year
+            $month_barcode = substr($row['BARCODE'], 25, 2); // digit month
+            $day_barcode = substr($row['BARCODE'], 28, 2); //digit day
+            $group1 = substr($row['BARCODE'], 16, 1); //digit group 1
+            $group2 = substr($row['BARCODE'], 17, 1); // digit group 2
+            $mesin = substr($row['BARCODE'], 19, 2); // nomor/kode mesin
 
-            $max_old_barcode = DB::table('erasystem_2012.barcode_pellet')->selectRaw('CAST(MAX(RIGHT(BARCODE, 4)) AS SIGNED) AS LAST_NO')->whereRaw('DATE(TANGGAL) = ?', [date('Y-m-d')])->first();
+            $str_date_barcode = substr($row['BARCODE'], 22, 8); // Str tanggal untuk new barcode
+            $date_barcode = $year_barcode . '-' . $month_barcode . '-' . $day_barcode; // tanggal barcode
 
-            $pellet = DB::table('erasystem_2012.pellet')->select('NAMA_LABEL', 'NAMA')->where('KODE', $row['KODE_PELLET2'])->first();
+            $pellet = DB::table('erasystem_2012.pellet')->select('NAMA_LABEL', 'NAMA')->where('KODE', $row['KODE_PELLET2'])->first(); //Get nama pellet dan label dari master kode pellet
 
             if ($max_old_barcode) {
-                $no_urut = $max_old_barcode->LAST_NO + 1;
-                $no_urut = sprintf("%04s", $no_urut);
+                $no_urut = $max_old_barcode->LAST_NO + 1; // Jika ada no urut hari ini tambahkan 1
             } else {
-                $no_urut = '0001';
+                $no_urut = 1; // Jika tidak ada ubah menjadi 1
             }
 
-            $new_barcode = $row['KODE_PELLET2'] . '.' . $row['PT_ID'] . '.' . $group1 . $group2 . '.' . $mesin . '.' . $str_date_barcode . '.' . $no_urut;
+            $new_barcode = $row['KODE_PELLET2'] . '.' . $row['PT_ID'] . '.' . $group1 . $group2 . '.' . $mesin . '.' . $str_date_barcode . '.' . sprintf("%04s", $no_urut); // Barcode baru
 
             $data_newbarcode[] = [
                 'BARCODE' => $new_barcode,
@@ -413,7 +409,9 @@ class BarcodePelletDetController extends Controller
                 'USERNAME' => $row['USERNAME'],
                 'KETERANGAN' => 'Pengganti barcode ' . $row['BARCODE'],
                 'LAST_UPDATE' => date('Y-m-d H:i:s'),
-            ];
+            ]; // Data new barcode yg diinsert
+
+            $no_urut++; // Tambah no urut
 
             $data_log[] = [
                 'TANGGAL' => date('Y-m-d H:i:s'),
@@ -426,7 +424,7 @@ class BarcodePelletDetController extends Controller
                 'NAMA_PELLET_LAMA' => $row['NAMA_PELLET'],
                 'LABEL_PELLET_LAMA' => $row['NAMA_LABEL'],
                 'KETERANGAN' => 'Pengganti barcode ' . $row['BARCODE'],
-            ];
+            ]; // Data log
 
         }
 
@@ -434,10 +432,10 @@ class BarcodePelletDetController extends Controller
 
         try {
 
-            DB::statement(DB::raw("SET @UserLoginAktif='" . $username . "'"));
-            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $barcode)->update($data_non);
-            DB::table('erasystem_2012.barcode_pellet')->insert($data_newbarcode);
-            DB::table('erasystem_2012.barcode_pellet_perubahan')->insert($data_log);
+            DB::statement(DB::raw("SET @UserLoginAktif='" . $username . "'")); // set variabel user login untuk barcode_pellet_det
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $barcode)->update($data_non); //Nonaktifkan barcode
+            DB::table('erasystem_2012.barcode_pellet')->insert($data_newbarcode); // Insert barcode baru
+            DB::table('erasystem_2012.barcode_pellet_perubahan')->insert($data_log); // Insert log perubahan
 
             $out = [
                 'message' => 'Submit sukses',
