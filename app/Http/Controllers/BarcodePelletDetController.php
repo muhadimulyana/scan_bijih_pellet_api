@@ -390,7 +390,7 @@ class BarcodePelletDetController extends Controller
 
         }
 
-        return response()->json($out, $out['code'], []);
+        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
 
     public function updateGradeBarcode(Request $request)
