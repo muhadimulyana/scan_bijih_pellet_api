@@ -132,7 +132,7 @@ class BarcodePelletDetController extends Controller
 
     public function getkodePellet()
     {
-        $result = DB::table('erasystem_2012.pellet')->select('KODE')->get();
+        $result = DB::table('erasystem_2012.pellet')->select('KODE', 'NAMA', 'NAMA_LABEL')->get();
         $out = [
             'message' => 'success',
             'result' => $result,
