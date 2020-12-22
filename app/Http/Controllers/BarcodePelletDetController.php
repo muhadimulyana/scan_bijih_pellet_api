@@ -484,7 +484,7 @@ class BarcodePelletDetController extends Controller
                 'GROUP2' => $group2,
                 'MESIN' => $mesin,
                 'USERNAME' => $user_update,
-                'KETERANGAN' => 'Pengganti barcode ' . $row['BARCODE'],
+                'KETERANGAN' => $old_barcode->KETERANGAN,
                 'LAST_UPDATE' => date('Y-m-d H:i:s'),
             ]; // Data new barcode yg diinsert
 
@@ -505,7 +505,7 @@ class BarcodePelletDetController extends Controller
             $barcode_update[$no_array]['BARCODE_BARU'] = $new_barcode;
             $barcode_update[$no_array]['BARCODE_LAMA'] = $row['BARCODE'];
             $no_urut++; // Tambah no urut
-            $no_array++;
+            $no_array++; // Add no urut array start from 0
         }
 
         DB::beginTransaction();
@@ -518,8 +518,8 @@ class BarcodePelletDetController extends Controller
             sleep(1); // Beri jeda 1 detik untuk update last update
             DB::statement(DB::raw("SET @AKSI = 'TAMBAH'")); // Set aksi tambah untuk update barcode baru
             foreach($barcode_update as $row){
-                $this->_setVariable(null, $newpt, $pt_nama, $gudang, 'QUA', 'Quality Assurance', 'In Process', $row['BARCODE_LAMA'], $username, 'TERIMA', null); //Set variabel mysql
-                DB::table('erasystem_2012.barcode_pellet')->where('BARCODE', $row['BARCODE_BARU'])->update(['LAST_UPDATE' => date('Y-m-d H:i:s'), 'PT_ID' => $newpt, 'PT_NAMA' => $pt_nama, 'DEPT_ID' => $dept, 'DEPT_NAMA' => $dept_nama, 'USERNAME' => $username]);
+                $this->_setVariable(null, $newpt, $pt_nama, $gudang, 'QUA', 'Quality Assurance', 'In Process', $row['BARCODE_LAMA'], $username, 'TERIMA', 'Pengganti barcode ' . $row['BARCODE_LAMA']); //Set variabel mysql
+                DB::table('erasystem_2012.barcode_pellet')->where('BARCODE', $row['BARCODE_BARU'])->update(['LAST_UPDATE' => date('Y-m-d H:i:s'), 'PT_ID' => $newpt, 'PT_NAMA' => $pt_nama, 'DEPT_ID' => $dept, 'DEPT_NAMA' => $dept_nama, 'USERNAME' => $username, 'KETERANGAN' => 'Pengganti barcode ' . $row['BARCODE_LAMA']]);
             }
             DB::table('erasystem_2012.barcode_pellet_perubahan')->insert($data_log); // Insert log perubahan
 
