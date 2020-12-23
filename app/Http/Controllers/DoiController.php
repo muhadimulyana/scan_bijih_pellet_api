@@ -1017,6 +1017,186 @@ class DoiController extends Controller
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
     }
 
+    public function updateOffline(Request $request)
+    {
+        $records = $request->all();
+
+        $this->validate($request, [
+            //'*' => 'required|array',
+            '*.USERNAME' => 'required',
+            '*.PT_ID' => 'required',
+            '*.PT_NAMA' => 'required',
+            '*.GUDANG' => 'required',
+            //'*.STATUS' => 'required',
+            '*.ID_DO' => 'required',
+        ]);
+
+        // handle data doi pilihan
+        $username = $records[0]['USERNAME'];
+        $pt = $records[0]['PT_ID'];
+        $pt_nama = $records[0]['PT_NAMA'];
+        $gudang = $records[0]['GUDANG'];
+        $newpt = $pt == '1' ? 'ERA' : ($pt == '2' ? 'ERI' : 'EPI');
+        //
+        $dari_dept_id = 'PPC';
+        $ke_dept_id = 'PPC';
+        $dari_dept_nama = 'PPIC';
+        $ke_dept_nama = 'PPIC';
+        $dari_dept_area = 'Plastics Pellet Warehouse';
+        $ke_dept_area = 'Receiving';
+        $status = 'KIRIM';
+        //$newstatus = 'TERIMA';
+        // $id_so = $records[0]['ID_DO'];
+        // $id_jadwal = $records[0]['ID_JADWAL'];
+        // $nopol = $records[0]['NOPOL'];
+        $ket = null;
+
+        $datetime = date('Y-m-d H:i:s');
+        $date = date('Y-m-d');
+
+        //cari nilai max doi_pellet
+        $IdDo = $records[0]['ID_DO'];
+
+        //Munculkan list barcode dalam bentuk array
+        $q_old = DB::table('erasystem_2012.barcode_pellet_det')
+            ->join('erasystem_2012.barcode_pellet', function ($join) {
+                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+            })
+            ->whereRaw('barcode_pellet_det.NOTRANS = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$IdDo, 'KIRIM', '1'])
+            ->select('barcode_pellet_det.BARCODE')->get();
+        $arr_q_old = $q_old->toArray();
+        $old_barcode = array_column($arr_q_old, 'BARCODE');
+
+        //handle request barcode
+        $barcodes = array_column($records, 'BARCODE');
+        $kode_pellet = []; // array code pellet
+        $add_barcode = []; // array kode pellet yg akan ditambahlan
+        $del_barcodes = []; // array kode pellet yg akan dihapus
+        $count_barcode = []; // Jumlah barcode (opsional)
+        $list_doi = []; // Data DOI yg akan dimasukkan/update
+        $a_total = []; // Jumlah masing2 kode pellet
+        $total_item = []; //
+        //Untuk membedakan mana yg dihapus dan ditambah bisa disini
+        foreach ($records as $rec) {
+
+            if ($rec['STATUS_BARCODE'] == 1) {
+
+                if (!in_array($rec['BARCODE'], $old_barcode)) {
+                    $pellet = DB::table('erasystem_2012.barcode_pellet')
+                        ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                        })
+                        ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.GUDANG = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$rec['BARCODE'], $newpt, $gudang, $dari_dept_id, $dari_dept_area, 'TERIMA', '1'])
+                        ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
+                        ->first();
+                    ($pellet) ? array_push($add_barcode, $rec['BARCODE']) : '';
+                } else {
+                    $pellet = DB::table('erasystem_2012.barcode_pellet_det')
+                        ->join('erasystem_2012.barcode_pellet', function ($join) {
+                            $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+                        })
+                        ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$rec['BARCODE'], $IdDo, 'KIRIM', '1'])
+                        ->selectRaw('barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG')->first();
+                }
+
+                array_push($count_barcode, $rec['BARCODE']);
+
+                if ($pellet) {
+
+                    $kg = $pellet->KG;
+                    $kd_pellet = $pellet->KODE_PELLET;
+
+                    array_push($a_total, $kd_pellet);
+
+                    if (array_key_exists($kd_pellet, $total_item)) {
+                        $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
+                    } else {
+                        $total_item[$kd_pellet] = $kg;
+                    }
+
+                    if (!in_array($kd_pellet, array_column($list_doi, 'KODE_PELLET'))) {
+                        $list_doi[] = [
+                            'ID_DO' => $IdDo, // No DO
+                            'KODE_PELLET' => $kd_pellet,
+                            'NAMA_PELLET' => $pellet->NAMA_PELLET,
+                            'NAMA_LABEL' => $pellet->NAMA_LABEL,
+                            'SATUAN' => 'SAK',
+                            'KETERANGAN' => null,
+                        ];
+                    }
+
+                }
+
+            } else {
+                array_push($del_barcodes, $rec['BARCODE']); // Masukkan barcode yg dihapus ke dalam array del_barcodes
+            }
+
+        }
+
+        if (count($count_barcode) === count($a_total)) {
+
+            $total = array_count_values($a_total);
+
+            $i = 0;
+            foreach ($list_doi as $row) {
+                $list_doi[$i]['KG'] = $total_item[$row['KODE_PELLET']];
+                $list_doi[$i]['QTY'] = $total[$row['KODE_PELLET']];
+                $i++;
+            }
+
+            //Set variabel
+            $this->_setVariable('DO', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $IdDo, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+
+            $data_doi = [
+                'ID_DO' => $IdDo,
+                //'USERNAME' => $username,
+                'LAST_UPDATE' => date('Y-m-d H:i:s'),
+                'TOTAL' => count($count_barcode),
+            ];
+
+            DB::beginTransaction();
+
+            try {
+
+                $update = Doi::where('ID_DO', $IdDo)->update($data_doi);
+                //DB::table('erasyste_2012.bst_pellet_item')->delete
+                DB::table('erasystem_2012.doi_pellet_item')->where('ID_DO', $IdDo)->delete();
+                DB::table('erasystem_2012.doi_pellet_item')->insert($list_doi); // Delete list bst dan masukkan kembali
+
+                DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $add_barcode)->update(['LAST_UPDATE' => $datetime]);
+
+                DB::statement(DB::raw("SET @AKSI='HAPUS'"));
+                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
+
+                $out = [
+                    'message' => 'success',
+                    'code' => 200,
+                ];
+                DB::commit();
+
+            } catch (QueryException $e) {
+
+                $out = [
+                    'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                    'code' => 500,
+                ];
+                DB::rollBack();
+
+            }
+
+        } else {
+
+            $out = [
+                'message' => 'Submit gagal: Terdapat barcode yang tidak sesuai!',
+                'code' => 500,
+            ];
+
+        }
+
+        return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
+    }
+
     /* =========================================== UNTUK BAGIAN TERIMA =================================================== */
 
     public function getlistDoi($pt, $gudang) // Untuk terima DO
