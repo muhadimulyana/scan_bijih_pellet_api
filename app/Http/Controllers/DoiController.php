@@ -922,6 +922,7 @@ class DoiController extends Controller
                 $out = [
                     'message' => 'Terdapat item yang tidak sesuai',
                     'code' => 500,
+                    'result' => $item_f,
                 ];
 
             }
@@ -930,6 +931,7 @@ class DoiController extends Controller
             $out = [
                 'message' => 'Terdapat barcode yang tidak sesuai',
                 'code' => 500,
+                'result' => $barcode_f,
             ];
         }
 
