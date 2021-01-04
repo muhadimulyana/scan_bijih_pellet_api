@@ -774,36 +774,36 @@ class DoiController extends Controller
                 })
                 ->whereRaw('barcode_pellet_det.BARCODE = ? AND barcode_pellet_det.PT_ID = ? AND barcode_pellet_det.GUDANG = ? AND barcode_pellet_det.DEPT_ID = ? AND barcode_pellet_det.DEPT_AREA = ? AND barcode_pellet_det.STATUS = ? AND barcode_pellet.AKTIF = ?', [$rec['BARCODE'], $newpt, $gudang, $dari_dept_id, $dari_dept_area, 'TERIMA', '1'])
                 ->selectRaw("barcode_pellet.NAMA_LABEL, barcode_pellet.NAMA_PELLET, barcode_pellet.KODE_PELLET, barcode_pellet.KG")
-                ->first();
+                ->first(); //Check barcode tersedia untuk kirim DOI
 
             if ($pellet) {
 
                 $soi_item = DB::table('erasystem_2012.soi_pellet_item')
-                    ->whereRaw('soi_pellet_item.KODE_PELLET = ? AND soi_pellet_item.ID_SO = ?', [$kode, $id_so])->selectRaw('ID_SO, QTY AS QTY_SO')->first();
+                    ->whereRaw('soi_pellet_item.KODE_PELLET = ? AND soi_pellet_item.ID_SO = ?', [$kode, $id_so])->selectRaw('ID_SO, QTY AS QTY_SO')->first(); // Get jumlah SO per kode pellet
 
                 if ($soi_item) {
 
-                    array_push($kode_pellets, $kode);
+                    array_push($kode_pellets, $kode); //Push untuk jumlah QTY doi item
                     if (!array_key_exists($kode, $item_t)) {
 
                         $doi = DB::table('erasystem_2012.doi_pellet_item')
                             ->leftJoin('erasystem_2012.doi_pellet', 'doi_pellet.ID_DO', '=', 'doi_pellet_item.ID_DO')
                             ->selectRaw('SUM(doi_pellet_item.QTY) AS QTY_DO')
                             ->whereRaw('doi_pellet.ID_SO = ? AND doi_pellet_item.KODE_PELLET = ?', [$id_so, $kode])
-                            ->first();
+                            ->first(); //Cek Qty DOI sebelumnya
 
                         if ($doi->QTY_DO !== null) {
-                            $res = (int) $soi_item->QTY_SO - (int) $doi->QTY_DO;
+                            $res = (int) $soi_item->QTY_SO - (int) $doi->QTY_DO; //Jika ada kurangi Qty SO dengan qty DO
                             if ($res >= 0) {
-                                $item_t[$kode] = $res;
+                                $item_t[$kode] = $res; // Jika hasilnya diatas 0 (bisa ditambah) masukkan ke item true
                             }
                         } else {
-                            $item_t[$kode] = (int) $soi_item->QTY_SO;
+                            $item_t[$kode] = (int) $soi_item->QTY_SO; // Jika tidak ada ambil value SO
                         }
 
                     }
 
-                    if (!array_key_exists($kode, $kode_pellet)) {
+                    if (!array_key_exists($kode, $kode_pellet)) { //Cek array kode pellet untuk pengurangan akhir dengan item true
                         $kode_pellet[$kode] = 1;
                     } else {
                         $kode_pellet[$kode] = $kode_pellet[$kode] + 1;
@@ -844,19 +844,18 @@ class DoiController extends Controller
 
         //Check submit
 
-        if (count($barcode_f) === 0) {
+        if (count($barcode_f) === 0) { // Jika ada barcode tidak sesuai
 
-            if (count($item_f) === 0) {
+            if (count($item_f) === 0) { // Jika ada item tidak sesuai
 
-                $hasil = array_map(function ($x, $y) {return $x - $y;}, $item_t, $kode_pellet);
-                //$result = array_combine(array_keys($item_t), $subtracted);
+                $hasil = array_map(function ($x, $y) {return $x - $y;}, $item_t, $kode_pellet); //HPenguranga array kode pellet dengan array item true
 
                 $minus = array_filter($hasil, function ($x) {
-                    return $x < 0;
+                    return $x < 0; //Cek jika ada array dengan value minus
                 });
-                $minus = array_values($minus);
+                $minus = array_values($minus); //Ubah ke single array
 
-                if (count($minus) === 0) {
+                if (count($minus) === 0) { //Cek jika ada item yang melebihi
 
                     $total = array_count_values($kode_pellets); //Total Jumlah
                     //Insert total ke list bst pellet
@@ -1097,12 +1096,10 @@ class DoiController extends Controller
         $records = $request->all();
 
         $this->validate($request, [
-            //'*' => 'required|array',
             '*.USERNAME' => 'required',
             '*.PT_ID' => 'required',
             '*.PT_NAMA' => 'required',
             '*.GUDANG' => 'required',
-            //'*.STATUS' => 'required',
             '*.ID_DO' => 'required',
         ]);
 
@@ -1120,10 +1117,6 @@ class DoiController extends Controller
         $dari_dept_area = 'Plastics Pellet Warehouse';
         $ke_dept_area = 'Receiving';
         $status = 'KIRIM';
-        //$newstatus = 'TERIMA';
-        // $id_so = $records[0]['ID_DO'];
-        // $id_jadwal = $records[0]['ID_JADWAL'];
-        // $nopol = $records[0]['NOPOL'];
         $ket = null;
 
         $datetime = date('Y-m-d H:i:s');
@@ -1151,10 +1144,15 @@ class DoiController extends Controller
         $list_doi = []; // Data DOI yg akan dimasukkan/update
         $a_total = []; // Jumlah masing2 kode pellet
         $total_item = []; //
+        $barcode_f = [];
+        $item_f = [];
+        $item_t = [];
         //Untuk membedakan mana yg dihapus dan ditambah bisa disini
         foreach ($records as $rec) {
 
             if ($rec['STATUS_BARCODE'] == 1) {
+
+                $kode = substr($rec['BARCODE'], 0, 13);
 
                 if (!in_array($rec['BARCODE'], $old_barcode)) {
                     $pellet = DB::table('erasystem_2012.barcode_pellet')
@@ -1178,28 +1176,69 @@ class DoiController extends Controller
 
                 if ($pellet) {
 
-                    $kg = $pellet->KG;
-                    $kd_pellet = $pellet->KODE_PELLET;
+                    $doi = Doi::select('ID_SO')->where('ID_DO', $IdDo)->first();
+                    $id_so = $doi->ID_SO;
 
-                    array_push($a_total, $kd_pellet);
+                    $soi_item = DB::table('erasystem_2012.soi_pellet_item')
+                        ->whereRaw('soi_pellet_item.KODE_PELLET = ? AND soi_pellet_item.ID_SO = ?', [$kode, $id_so])->selectRaw('ID_SO, QTY AS QTY_SO')->first(); // Get jumlah SO per kode pellet
 
-                    if (array_key_exists($kd_pellet, $total_item)) {
-                        $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
+                    if ($soi_item) {
+
+                        if (!array_key_exists($kode, $item_t)) {
+
+                            $doi = DB::table('erasystem_2012.doi_pellet_item')
+                                ->leftJoin('erasystem_2012.doi_pellet', 'doi_pellet.ID_DO', '=', 'doi_pellet_item.ID_DO')
+                                ->selectRaw('SUM(doi_pellet_item.QTY) AS QTY_DO')
+                                ->whereRaw('doi_pellet.ID_SO = ? AND doi_pellet_item.KODE_PELLET = ? AND doi_pellet_item.ID_DO <> ?', [$id_so, $kode, $IdDo])
+                                ->first(); //Cek Qty DOI sebelumnya
+
+                            if ($doi->QTY_DO !== null) {
+                                $res = (int) $soi_item->QTY_SO - (int) $doi->QTY_DO; //Jika ada kurangi Qty SO dengan qty DO
+                                if ($res >= 0) {
+                                    $item_t[$kode] = $res; // Jika hasilnya diatas 0 (bisa ditambah) masukkan ke item true
+                                }
+                            } else {
+                                $item_t[$kode] = (int) $soi_item->QTY_SO; // Jika tidak ada ambil value SO
+                            }
+
+                        }
+
+                        if (!array_key_exists($kode, $kode_pellet)) { //Cek array kode pellet untuk pengurangan akhir dengan item true
+                            $kode_pellet[$kode] = 1;
+                        } else {
+                            $kode_pellet[$kode] = $kode_pellet[$kode] + 1;
+                        }
+
+                        $kg = $pellet->KG;
+                        $kd_pellet = $pellet->KODE_PELLET;
+
+                        array_push($a_total, $kd_pellet);
+
+                        if (array_key_exists($kd_pellet, $total_item)) {
+                            $total_item[$kd_pellet] = $total_item[$kd_pellet] + $kg;
+                        } else {
+                            $total_item[$kd_pellet] = $kg;
+                        }
+
+                        if (!in_array($kd_pellet, array_column($list_doi, 'KODE_PELLET'))) {
+                            $list_doi[] = [
+                                'ID_DO' => $IdDo, // No DO
+                                'KODE_PELLET' => $kd_pellet,
+                                'NAMA_PELLET' => $pellet->NAMA_PELLET,
+                                'NAMA_LABEL' => $pellet->NAMA_LABEL,
+                                'SATUAN' => 'SAK',
+                                'KETERANGAN' => null,
+                            ];
+                        }
+
                     } else {
-                        $total_item[$kd_pellet] = $kg;
+                        //Item tidak sesuai
+                        array_push($item_f, $rec['BARCODE']);
                     }
 
-                    if (!in_array($kd_pellet, array_column($list_doi, 'KODE_PELLET'))) {
-                        $list_doi[] = [
-                            'ID_DO' => $IdDo, // No DO
-                            'KODE_PELLET' => $kd_pellet,
-                            'NAMA_PELLET' => $pellet->NAMA_PELLET,
-                            'NAMA_LABEL' => $pellet->NAMA_LABEL,
-                            'SATUAN' => 'SAK',
-                            'KETERANGAN' => null,
-                        ];
-                    }
-
+                } else {
+                    // Barcode tidak sesuai
+                    array_push($barcode_f, $rec['BARCODE']);
                 }
 
             } else {
@@ -1208,65 +1247,91 @@ class DoiController extends Controller
 
         }
 
-        if (count($count_barcode) === count($a_total)) {
+        if (count($barcode_f) === 0) { // Jika ada barcode tidak sesuai
 
-            $total = array_count_values($a_total);
+            if (count($item_f) === 0) { // Jika ada item tidak sesuai
 
-            $i = 0;
-            foreach ($list_doi as $row) {
-                $list_doi[$i]['KG'] = $total_item[$row['KODE_PELLET']];
-                $list_doi[$i]['QTY'] = $total[$row['KODE_PELLET']];
-                $i++;
-            }
+                $hasil = array_map(function ($x, $y) {return $x - $y;}, $item_t, $kode_pellet); //HPenguranga array kode pellet dengan array item true
 
-            //Set variabel
-            $this->_setVariable('DO', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $IdDo, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+                $minus = array_filter($hasil, function ($x) {
+                    return $x < 0; //Cek jika ada array dengan value minus
+                });
+                $minus = array_values($minus); //Ubah ke single array
 
-            $data_doi = [
-                'ID_DO' => $IdDo,
-                //'USERNAME' => $username,
-                'LAST_UPDATE' => date('Y-m-d H:i:s'),
-                'TOTAL' => count($count_barcode),
-            ];
+                if (count($minus) === 0) {
 
-            DB::beginTransaction();
+                    $total = array_count_values($a_total);
+        
+                    $i = 0;
+                    foreach ($list_doi as $row) {
+                        $list_doi[$i]['KG'] = $total_item[$row['KODE_PELLET']];
+                        $list_doi[$i]['QTY'] = $total[$row['KODE_PELLET']];
+                        $i++;
+                    }
+        
+                    //Set variabel
+                    $this->_setVariable('DO', $newpt, $pt_nama, $gudang, $dari_dept_id, $dari_dept_nama, $dari_dept_area, $IdDo, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+        
+                    $data_doi = [
+                        'ID_DO' => $IdDo,
+                        //'USERNAME' => $username,
+                        'LAST_UPDATE' => date('Y-m-d H:i:s'),
+                        'TOTAL' => count($count_barcode),
+                    ];
+        
+                    DB::beginTransaction();
+        
+                    try {
+        
+                        $update = Doi::where('ID_DO', $IdDo)->update($data_doi);
+                        //DB::table('erasyste_2012.bst_pellet_item')->delete
+                        DB::table('erasystem_2012.doi_pellet_item')->where('ID_DO', $IdDo)->delete();
+                        DB::table('erasystem_2012.doi_pellet_item')->insert($list_doi); // Delete list bst dan masukkan kembali
+        
+                        DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+                        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $add_barcode)->update(['LAST_UPDATE' => $datetime]);
+        
+                        DB::statement(DB::raw("SET @AKSI='HAPUS'"));
+                        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
+        
+                        $out = [
+                            'message' => 'success',
+                            'code' => 200,
+                        ];
+                        DB::commit();
+        
+                    } catch (QueryException $e) {
+        
+                        $out = [
+                            'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                            'code' => 500,
+                        ];
+                        DB::rollBack();
+        
+                    }
+        
+                } else {
+        
+                    $out = [
+                        'message' => 'Scan melebihi total item tersedia',
+                        'code' => 500
+                    ];
+        
+                }
 
-            try {
-
-                $update = Doi::where('ID_DO', $IdDo)->update($data_doi);
-                //DB::table('erasyste_2012.bst_pellet_item')->delete
-                DB::table('erasystem_2012.doi_pellet_item')->where('ID_DO', $IdDo)->delete();
-                DB::table('erasystem_2012.doi_pellet_item')->insert($list_doi); // Delete list bst dan masukkan kembali
-
-                DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
-                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $add_barcode)->update(['LAST_UPDATE' => $datetime]);
-
-                DB::statement(DB::raw("SET @AKSI='HAPUS'"));
-                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $del_barcodes)->update(['LAST_UPDATE' => $datetime]);
-
+            } else {
                 $out = [
-                    'message' => 'success',
-                    'code' => 200,
-                ];
-                DB::commit();
-
-            } catch (QueryException $e) {
-
-                $out = [
-                    'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                    'message' => 'Terdapat item yang tidak sesuai',
                     'code' => 500,
+                    'result' => $item_f,
                 ];
-                DB::rollBack();
-
             }
-
         } else {
-
             $out = [
-                'message' => 'Submit gagal: Terdapat barcode yang tidak sesuai!',
+                'message' => 'Terdapat barcode yang tidak sesuai',
                 'code' => 500,
+                'result' => $barcode_f,
             ];
-
         }
 
         return response()->json($out, $out['code'], [], JSON_NUMERIC_CHECK);
