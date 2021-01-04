@@ -120,6 +120,7 @@ $router->group(['prefix' => 'doi'], function () use ($router) {
     $router->post('/checkBarcode', 'DoiController@checkBarcode');
     $router->post('/checkBarcodeKirim', 'DoiController@checkBarcodeKirim');
     $router->post('/checkBarcodeTerima', 'DoiController@checkBarcodeTerima');
+    $router->post('/checkbarcodeUpdate', 'DoiController@checkbarcodeUpdate');
     $router->get('/checkItem/{idSo:[A-Za-z0-9/]+}/{kode}/{total}', 'DoiController@checktotalItem');
     $router->post('/kirim', 'DoiController@store');
     $router->post('/update', 'DoiController@update');
@@ -127,6 +128,7 @@ $router->group(['prefix' => 'doi'], function () use ($router) {
     $router->delete('/delete/{notrans:[A-Za-z0-9/]+}', 'DoiController@delete');
     $router->get('/getlistBarcodeKirim/{IdSo:[A-Za-z0-9/]+}', 'DoiController@getlistBarcodeKirim');
     $router->post('/kirimOffline', 'DoiController@storeOffline');
+    $router->post('/updateOffline', 'DoiController@updateOffline');
 });
 
 //User Routes
