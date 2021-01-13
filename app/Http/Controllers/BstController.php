@@ -1078,6 +1078,7 @@ class BstController extends Controller
         $kode_pellets = [];
         $list_bst = [];
         $total_item = [];
+        $barcode_f = [];
         foreach ($records as $a) { // Digunakan untuk mengakumulasi KG
 
             $pellet = DB::table('erasystem_2012.barcode_pellet')
@@ -1112,11 +1113,13 @@ class BstController extends Controller
                     ];
                 }
 
+            } else {
+                array_push($barcode_f, $a['BARCODE']);
             }
 
         }
 
-        if (count($kode_pellets) === count($barcodes)) {
+        if (count($barcode_f) === 0) {
 
             //Total Qty PerItem
             $total = array_count_values($kode_pellets);
@@ -1183,6 +1186,7 @@ class BstController extends Controller
             $out = [
                 'message' => 'Terdapat barcode yang tidak sesuai',
                 'code' => 500,
+                'result' => $barcode_f
             ];
 
         }
@@ -1424,7 +1428,7 @@ class BstController extends Controller
         $list_bst = []; //List barcode yg akan dimasukkan kedalam bst_item
         $a_total = []; //List Kode Pellet
         $total_item = []; // Total KG untuk bst list item
-
+        $barcode_f = [];
         // foreach($records as $rec){
         //     if($rec['STATUS_BARCODE'] == 1){
         //     }
@@ -1481,6 +1485,8 @@ class BstController extends Controller
                         ];
                     }
 
+                } else {
+                    array_push($barcode_f, $rec['BARCODE']);
                 }
 
             } else {
@@ -1489,7 +1495,7 @@ class BstController extends Controller
 
         }
 
-        if (count($count_barcode) == count($a_total)) {
+        if (count($barcode_f) === 0) {
 
             $total = array_count_values($a_total);
 
@@ -1546,6 +1552,7 @@ class BstController extends Controller
             $out = [
                 'message' => 'Submit gagal: Terdapat barcode yang tidak sesuai!',
                 'code' => 500,
+                'result' => $barcode_f
             ];
 
         }
