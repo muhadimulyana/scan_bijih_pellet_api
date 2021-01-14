@@ -129,6 +129,7 @@ $router->group(['prefix' => 'doi'], function () use ($router) {
     $router->get('/getlistBarcodeKirim/{IdSo:[A-Za-z0-9/]+}', 'DoiController@getlistBarcodeKirim');
     $router->post('/kirimOffline', 'DoiController@storeOffline');
     $router->post('/updateOffline', 'DoiController@updateOffline');
+    $router->post('/terimaOffline', 'DoiController@terimaDoiOffline');
 });
 
 //User Routes
