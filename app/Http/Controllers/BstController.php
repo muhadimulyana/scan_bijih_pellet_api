@@ -261,17 +261,6 @@ class BstController extends Controller
     {
         if ($request->method('post')) {
 
-            //Status terima minimal
-            // $this->validate($request, [
-            //     'USERNAME' => 'required',
-            //     'PT_ID' => 'required',
-            //     'PT_NAMA' => 'required',
-            //     'GUDANG' => 'required',
-            //     'STATUS' => 'required',
-            //     'NOTRANS' => 'required',
-            //     'DEVICE_LOGIN' => 'required'
-            // ]);
-
             $records = $request->all();
 
             $this->validate($request, [
@@ -335,42 +324,52 @@ class BstController extends Controller
             // $scanbarcode = array_unique($scanbarcode);
             $diff = array_diff($scanbarcode, $listbarcode);
 
-            if (count($diff) == 0) { //Bisa dengan jumlah yg dikirimkan oleh client
-
-                DB::beginTransaction();
-
-                try {
-
-                    DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $device . "'"));
-                    $update = Bst::where('NO_BST', $noBst)->update($data);
-                    DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
-                    DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $listbarcode)->update(['LAST_UPDATE' => $datetime]);
-
-                    $out = [
-                        'message' => 'Submit sukses',
-                        'result' => [],
-                    ];
-                    $code = 201;
-                    DB::commit();
-
-                } catch (QueryException $e) {
-
-                    $out = [
-                        'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
-                        'result' => [],
-                    ];
+            if(count($listbarcode) === count($scanbarcode)){
+                if (count($diff) == 0) { //Bisa dengan jumlah yg dikirimkan oleh client
+    
+                    DB::beginTransaction();
+    
+                    try {
+    
+                        DB::statement(DB::raw("SET @USER_LOGIN='" . $username . "', @DEVICE_LOGIN='" . $device . "'"));
+                        $update = Bst::where('NO_BST', $noBst)->update($data);
+                        DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
+                        DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+    
+                        $out = [
+                            'message' => 'Submit sukses',
+                            'result' => [],
+                        ];
+                        $code = 201;
+                        DB::commit();
+    
+                    } catch (QueryException $e) {
+    
+                        $out = [
+                            'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                            'result' => [],
+                        ];
+                        $code = 500;
+                        DB::rollBack();
+    
+                    }
+                } else {
+                    $diff = array_values($diff);
                     $code = 500;
-                    DB::rollBack();
-
+                    $out = [
+                        'message' => 'Submit gagal: terdapat barcode yang tidak sesuai',
+                        'result' => $diff,
+                    ];
                 }
             } else {
                 $diff = array_values($diff);
                 $code = 500;
                 $out = [
-                    'message' => 'Submit gagal: terdapat barcode yang tidak sesuai',
+                    'message' => 'Submit gagal: jumlah barcode tidak sesuai',
                     'result' => $diff,
                 ];
             }
+
 
             return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
 
