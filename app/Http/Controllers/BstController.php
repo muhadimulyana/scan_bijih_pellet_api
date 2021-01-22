@@ -325,7 +325,7 @@ class BstController extends Controller
             $diff = array_diff($scanbarcode, $listbarcode);
 
             if(count($listbarcode) === count($scanbarcode)){
-                if (count($diff) == 0) { //Bisa dengan jumlah yg dikirimkan oleh client
+                if (count($diff) === 0) { //Bisa dengan jumlah yg dikirimkan oleh client
     
                     DB::beginTransaction();
     
@@ -362,11 +362,10 @@ class BstController extends Controller
                     ];
                 }
             } else {
-                $diff = array_values($diff);
                 $code = 500;
                 $out = [
                     'message' => 'Submit gagal: jumlah barcode tidak sesuai',
-                    'result' => $diff,
+                    'result' => [],
                 ];
             }
 

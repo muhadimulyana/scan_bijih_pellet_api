@@ -858,12 +858,15 @@ class DoiController extends Controller
             if (count($item_f) === 0) { // Jika ada item tidak sesuai
 
                 $hasil = array_map(function ($x, $y) {return $x - $y;}, $item_t, $kode_pellet); //HPenguranga array kode pellet dengan array item true
-                $hasil = array_combine($kd_pellets, $hasil);
+                //$hasil = array_combine($kd_pellets, $hasil);
 
                 $minus = array_filter($hasil, function ($x) {
                     return $x < 0; //Cek jika ada array dengan value minus
                 });
                 $minus = array_keys($minus); //Ubah ke single array
+
+                $minus = array_intersect_key($kd_pellets, 
+                    array_flip($minus));
 
                 if (count($minus) === 0) { //Cek jika ada item yang melebihi
 
@@ -1693,45 +1696,53 @@ class DoiController extends Controller
         $scanbarcode = array_column($records, 'BARCODE');
 
         $diff = array_diff($scanbarcode, $listbarcode);
-        
-        if(count($diff) === 0){
 
-            DB::beginTransaction();
-
-            try {
-
-                $update = Doi::where('ID_DO', $idDo)->update($data);
-                DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
-                DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $listbarcode)->update(['LAST_UPDATE' => $datetime]);
-                //$update = true;
-
-                $out = [
-                    'message' => 'Submit sukses',
-                    'result' => $data,
-                ];
-                $code = 201;
-                DB::commit();
-
-            } catch (QueryException $e) {
-
-                $out = [
-                    'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
-                    'result' => $data,
-                ];
+        if(count($scanbarcode) === count($listbarcode)){
+            if(count($diff) === 0){
+    
+                DB::beginTransaction();
+    
+                try {
+    
+                    $update = Doi::where('ID_DO', $idDo)->update($data);
+                    DB::statement(DB::raw("SET @AKSI = 'TAMBAH'"));
+                    DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+                    //$update = true;
+    
+                    $out = [
+                        'message' => 'Submit sukses',
+                        'result' => $data,
+                    ];
+                    $code = 201;
+                    DB::commit();
+    
+                } catch (QueryException $e) {
+    
+                    $out = [
+                        'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                        'result' => $data,
+                    ];
+                    $code = 500;
+                    DB::rollBack();
+    
+                }
+    
+            } else {
+                $diff = array_values($diff);
                 $code = 500;
-                DB::rollBack();
-
+                $out = [
+                    'message' => 'Submit gagal: terdapat barcode yang tidak sesuai',
+                    'result' => $diff
+                ];
             }
-
         } else {
-
-            $diff = array_values($diff);
             $code = 500;
             $out = [
-                'message' => 'Submit gagal: terdapat barcode yang tidak sesuai',
-                'result' => $diff
+                'message' => 'Submit gagal: jumlah barcode tidak sesuai',
+                'result' => []
             ];
         }
+        
 
         return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
 
