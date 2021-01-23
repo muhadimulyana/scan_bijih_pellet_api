@@ -909,6 +909,7 @@ class DoiController extends Controller
                         $out = [
                             'message' => 'Submit sukses',
                             'code' => 201,
+                            'result' => []
                         ];
                         DB::commit();
 
@@ -917,6 +918,7 @@ class DoiController extends Controller
                         $out = [
                             'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
                             'code' => 500,
+                            'result' => []
                         ];
                         DB::rollBack();
 
@@ -1278,12 +1280,14 @@ class DoiController extends Controller
                 $hasil = array_map(function ($x, $y) {
                     return $x - $y;
                 }, $item_t, $kode_pellet); //HPenguranga array kode pellet dengan array item true
-                $hasil = array_combine($kd_pellets, $hasil);
+                //$hasil = array_combine($kd_pellets, $hasil);
 
                 $minus = array_filter($hasil, function ($x) {
                     return $x < 0; //Cek jika ada array dengan value minus
                 });
                 $minus = array_keys($minus); //Ubah ke single array
+                $minus = array_intersect_key($kd_pellets, 
+                    array_flip($minus));
                 //$minus = trim(json_encode($minus), '"[]"');
                 //$over = array_intersect_key($kd_pellets, array_flip($minus));
                 //$over = array_column($array_kd_pellets, $minus);
@@ -1334,7 +1338,7 @@ class DoiController extends Controller
                     $out = [
                         'message' => 'Scan melebihi total item tersedia',
                         'code' => 500,
-                        'result' => array_values($over)
+                        'result' => $minus
                     ];
                 }
 
@@ -1711,7 +1715,7 @@ class DoiController extends Controller
     
                     $out = [
                         'message' => 'Submit sukses',
-                        'result' => $data,
+                        'result' => []
                     ];
                     $code = 201;
                     DB::commit();
@@ -1720,7 +1724,7 @@ class DoiController extends Controller
     
                     $out = [
                         'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
-                        'result' => $data,
+                        'result' => []
                     ];
                     $code = 500;
                     DB::rollBack();

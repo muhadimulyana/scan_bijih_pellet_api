@@ -1166,6 +1166,7 @@ class BstController extends Controller
                 $out = [
                     'message' => 'Submit sukses',
                     'code' => 201,
+                    'result' => []
                 ];
                 DB::commit();
 
@@ -1174,6 +1175,7 @@ class BstController extends Controller
                 $out = [
                     'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
                     'code' => 500,
+                    'result' => []
                 ];
                 DB::rollBack();
 
