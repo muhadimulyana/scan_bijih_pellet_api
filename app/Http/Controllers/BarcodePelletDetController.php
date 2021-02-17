@@ -432,22 +432,27 @@ class BarcodePelletDetController extends Controller
             'AKTIF' => 0,
         ]; // Data non aktif barcode
 
-        $max_old_barcode = DB::table('erasystem_2012.barcode_pellet')->selectRaw('CAST(MAX(RIGHT(BARCODE, 4)) AS SIGNED) AS LAST_NO')->whereRaw('DATE(TANGGAL) = ? AND PT_ID = ?', [date('Y-m-d'), $newpt])->first(); // Get last no urut barcode hari ini
+        $str_date = substr($records[0]['BARCODE'], 22, 8);
+        $max_old_barcode = DB::table('erasystem_2012.barcode_pellet')->selectRaw('CAST(MAX(RIGHT(BARCODE, 4)) AS SIGNED) AS LAST_NO')->whereRaw('MID(BARCODE, 23, 8) = ? AND PT_ID = ?', [$str_date, $newpt])->first(); // Get last no urut barcode hari ini
 
         if ($max_old_barcode) {
             $no_urut = $max_old_barcode->LAST_NO + 1; // Jika ada no urut hari ini tambahkan 1
         } else {
             $no_urut = 1; // Jika tidak ada set menjadi 1
         }
+
         $no_array = 0;
         $barcode_update = []; // Define new barcode untuk update barcode baru
         foreach ($records as $row) { // fetch and loop record
 
             $old_barcode = BarcodePelletDet::select('*')->where('BARCODE', $row['BARCODE'])->orderBy('TANGGAL', 'ASC')->first();
 
-            // $year_barcode = '20' . substr($row['BARCODE'], 22, 2); // digit year
-            // $month_barcode = substr($row['BARCODE'], 25, 2); // digit month
-            // $day_barcode = substr($row['BARCODE'], 28, 2); //digit day
+            //$year_barcode = '20' . substr($row['BARCODE'], 22, 2); // digit year
+            //$month_barcode = substr($row['BARCODE'], 25, 2); // digit month
+            //$day_barcode = substr($row['BARCODE'], 28, 2); //digit day
+            //$date_barcode = $year_barcode . '-' . $month_barcode . '-' . $day_barcode; // tanggal barcode
+            $str_date_barcode = substr($row['BARCODE'], 22, 8); // Str tanggal untuk new barcode
+
             $group1 = substr($row['BARCODE'], 16, 1); //digit group 1
             $group2 = substr($row['BARCODE'], 17, 1); // digit group 2
             $mesin = substr($row['BARCODE'], 19, 2); // nomor/kode mesin
@@ -460,8 +465,6 @@ class BarcodePelletDetController extends Controller
             $dept_area_update = $old_barcode->DEPT_AREA;
             $user_update = $old_barcode->USERNAME;
 
-            $str_date_barcode = substr($row['BARCODE'], 22, 8); // Str tanggal untuk new barcode
-            //$date_barcode = $year_barcode . '-' . $month_barcode . '-' . $day_barcode; // tanggal barcode
 
             $pellet = DB::table('erasystem_2012.pellet')->select('NAMA_LABEL', 'NAMA')->where('KODE', $row['KODE_PELLET2'])->first(); //Get nama pellet dan label dari master kode pellet
 
