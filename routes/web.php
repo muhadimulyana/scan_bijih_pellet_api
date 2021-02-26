@@ -143,3 +143,9 @@ $router->group(['prefix' => 'appTut'], function () use ($router) {
     $router->post('/getTutor', 'AppTutController@getTutor');
     //$router->get('/deptScan', 'DepartemenController@getdeptScan');
 });
+
+//Tutor Routes
+$router->group(['prefix' => 'penjualan'], function () use ($router) {
+    $router->get('/getJadwal/{kocab}', 'PenjualanController@getJadwal');
+    //$router->get('/deptScan', 'DepartemenController@getdeptScan');
+});
