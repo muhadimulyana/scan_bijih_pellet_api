@@ -10,9 +10,15 @@ use Illuminate\Support\Facades\DB;
 
 class PenjualanController extends Controller 
 {
+    public function _setVariable($jenisDok, $ptId, $ptNama, $gudang, $deptId, $deptNama, $deptArea, $notrans, $username, $status, $ket)
+    {
+        DB::statement(DB::raw("SET @JENIS_DOK='" . $jenisDok . "', @PT_ID='" . $ptId . "', @PT_NAMA='" . $ptNama . "', @GUDANG='" . $gudang . "', @DEPT_ID='" . $deptId . "', @DEPT_NAMA='" . $deptNama . "', @AREA='" . $deptArea . "', @NOTRANS='" . $notrans . "', @UserLoginAktif='" . $username . "', @STATUS_='" . $status . "', @KETERANGAN='" . $ket . "'"));
+        //$this->var = [$jenisDok, $ptId, $ptNama, $gudang, $deptId, $deptNama, $deptArea, $notrans, $username, $status, $ket];
+    }
+
     public function getDrafPengeluaranBarang($kocab)
     {   
-        $result = Penjualan::select('No_DO')->whereNull('OTORISASI_PPIC_USER')->get();
+        $result = Penjualan::select('NoTrans', 'No_DO')->whereNull('OTORISASI_PPIC_USER')->get();
 
         if($result->count()){
             $out = [
@@ -33,7 +39,7 @@ class PenjualanController extends Controller
     public function getJadwal($kocab)
     {
         $result = DB::table('erasystem_2012.jp_pellet as A')
-            ->selectRaw("A.ID_JADWAL, A.ID_SO, C.NOPOL, A.PT_ID, A.GUDANG, B.NoTrans, (SELECT SUM(Jml) FROM erasystem_2012.det_bpb_retur WHERE REPLACE(Notrans_BPB, '.B01', '') = B.NoTrans) AS TOTAL")
+            ->selectRaw("A.ID_JADWAL, A.ID_SO, C.NOPOL, A.PT_ID, A.GUDANG, B.NoTrans AS NOTRANS, (SELECT SUM(Jml) FROM erasystem_2012.det_bpb_retur WHERE REPLACE(Notrans_BPB, '.B01', '') = B.NoTrans) AS TOTAL_KG")
             ->join('erasystem_2012.jp_pellet_det as C', 'A.ID_JADWAL', '=', 'C.ID_JADWAL')
             ->join('erasystem_2012.daf_pengeluaran_barang as B', 'A.ID_SO', '=', 'B.NO_SO')
             ->whereRaw('A.TARIK_DO = ? AND A.GUDANG = ?', [0, $kocab])
@@ -80,7 +86,7 @@ class PenjualanController extends Controller
 
         if($check) {
 
-            $item = DB::table('erasystem_2012.daf_bpb_retur')->whereRaw('Notrans_BPB = ? AND KoHan = ?', [$no_trans, $kode])->first();
+            $item = DB::table('erasystem_2012.det_bpb_retur')->whereRaw('Notrans_BPB = ? AND KoHan = ?', [$no_trans . '.B01', $kode])->first();
 
             if($item) {
 
@@ -145,8 +151,81 @@ class PenjualanController extends Controller
             '*.STATUS' => 'required',
             '*.ID_SO' => 'required',
             '*.ID_JADWAL' => 'required',
+            '*.NOTRANS' => 'required',
             '*.NOPOL' => 'required',
         ]);
+
+        // handle data doi pilihan
+        $username = $records[0]['USERNAME'];
+        $pt = $records[0]['PT_ID'];
+        $pt_nama = $records[0]['PT_NAMA'];
+        $gudang = $records[0]['GUDANG'];
+        $newpt = $pt == '1' ? 'ERA' : ($pt == '2' ? 'ERI' : 'EPI');
+        //
+        $dept_id = 'PPC';
+        $dept_nama = 'PPIC';
+        $dept_area = 'Plastics Pellet Warehouse';
+        $status = $records[0]['STATUS'];
+        //$newstatus = 'TERIMA';
+        $id_so = $records[0]['ID_SO'];
+        $id_jadwal = $records[0]['ID_JADWAL'];
+        $nopol = $records[0]['NOPOL'];
+        $no_trans = $records[0]['NOTRANS'];
+        $ket = null;
+
+        $datetime = date('Y-m-d H:i:s');
+        $date = date('Y-m-d');
+
+        $n_tahun = date('y', strtotime($date));
+        $n_Tahun = date('Y', strtotime($date));
+        $n_bulan = date('m', strtotime($date));
+        $n_tanggal = date('d', strtotime($date));
+        //cari nilai max dox_
+        $dox = Penjualan::selectRaw('CAST(MAX(RIGHT(No_DO, 2)) AS SIGNED) AS LAST_NO')->whereRaw('LEFT(No_DO, 1) = ? AND MID(No_DO, 3, 3) = ? AND MONTH(Tgl) = ? AND YEAR(Tgl) = ?', [$pt, $dept_id, $n_bulan, $n_Tahun])->first();
+
+        if ($dox->count()) { // Jika DOX ada
+            $no = $dox->LAST_NO;
+            $no++;
+            $IdDo = $pt . '/' . $dept_id . '/DO/' . $n_tahun . '/' . $n_bulan . '/' . $n_tanggal . '/' . 'P' . sprintf("%02s", $no);
+        } else { // Jika null
+            $IdDo = $pt . '/' . $dept_id . '/DO/' . $n_tahun . '/' . $n_bulan . '/' . $n_tanggal . '/' . 'P01';
+        }
+
+        //handle request barcode
+        $barcodes = array_column($records, 'BARCODE');
+
+        //Set variabel
+        $this->_setVariable('DO-X', $newpt, $pt_nama, $gudang, $dept_id, $dept_nama, $dept_area, $IdDo, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+
+        $update = [
+            'No_DO' => $IdDo,
+            'NoKen' => $nopol
+        ];
+
+        DB::beginTransaction();
+
+        try {
+
+            Penjualan::where('NoTrans', $no_trans)->update($update);
+            DB::statement(DB::raw("SET @AKSI='TAMBAH'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $barcodes)->update(['LAST_UPDATE' => $datetime]);
+            $code = 201;
+            $out = [
+                'message' => 'Submit sukses'
+            ];
+            DB::commit();
+
+        } catch (QueryException $e) {
+
+            $code = 500;
+            $out = [
+                'message' => 'Submit gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2]
+            ];
+            DB::rollBack();
+
+        }
+        return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
+
     }
 
 }

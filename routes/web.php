@@ -147,5 +147,8 @@ $router->group(['prefix' => 'appTut'], function () use ($router) {
 //Tutor Routes
 $router->group(['prefix' => 'penjualan'], function () use ($router) {
     $router->get('/getJadwal/{kocab}', 'PenjualanController@getJadwal');
+    $router->post('/checkBarcodeKirim', 'PenjualanController@checkBarcodeKirim');
+    $router->post('/kirim', 'PenjualanController@store');
+    $router->get('/getDraf/{kocab}', 'PenjualanController@getDrafPengeluaranBarang');
     //$router->get('/deptScan', 'DepartemenController@getdeptScan');
 });
