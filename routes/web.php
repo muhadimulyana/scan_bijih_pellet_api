@@ -152,5 +152,7 @@ $router->group(['prefix' => 'penjualan'], function () use ($router) {
     $router->get('/getDraf/{kocab}', 'PenjualanController@getDrafPengeluaranBarang');
     $router->get('/getListBarcodeKirim/{notrans:[A-Za-z0-9/]+}', 'PenjualanController@getListBarcodeKirim');
     $router->post('/update', 'PenjualanController@update');
+    $router->delete('/delete/{notrans:[A-Za-z0-9/]+}', 'PenjualanController@delete');
+    $router->get('/sudahFinalize/{notrans:[A-Za-z0-9/]+}', 'PenjualanController@checkFinalize');
     //$router->get('/deptScan', 'DepartemenController@getdeptScan');
 });

@@ -93,7 +93,7 @@ class PenjualanController extends Controller
         $gudang = $request->input('GUDANG'); // yg kirim
         $barcode = $request->input('BARCODE');
         $id_so = '';
-        $no_trans = $request->input('NOTRANS');
+        $no_trans = $request->input('NOTRANS') . '.B01';
 
         $kode = substr($barcode, 0, 13);
         $newpt = $pt == '1' ? 'ERA' : ($pt == '2' ? 'ERI' : 'EPI');
@@ -112,7 +112,7 @@ class PenjualanController extends Controller
 
         if($check) {
 
-            $item = DB::table('erasystem_2012.det_bpb_retur')->whereRaw('Notrans_BPB = ? AND KoHan = ?', [$no_trans . '.B01', $kode])->first();
+            $item = DB::table('erasystem_2012.det_bpb_retur')->whereRaw('Notrans_BPB = ? AND KoHan = ?', [$no_trans, $kode])->first();
 
             if($item) {
 
@@ -131,15 +131,17 @@ class PenjualanController extends Controller
                     $out = [
                         'message' => 'success',
                         'result' => $result,
-                        'status' => true
+                        'status' => true,
+                        'error_code' => null
                     ];
 
                 } else {
                     $code = 200;
                     $out = [
                         'message' => 'Barcode tidak tersedia untuk area ' . $area . '. Detail barcode saat ini: ',
-                        'result' => $result,
-                        'status' => false
+                        'result' => $check,
+                        'status' => false,
+                        'error_code' => 1
                     ];
                 }
 
@@ -148,7 +150,8 @@ class PenjualanController extends Controller
                 $out = [
                     'message' => 'Item tidak sesuai dengan nomor SO',
                     'result' => [],
-                    'status' => false
+                    'status' => false,
+                    'error_code' => 2
                 ];
             }
 
@@ -157,7 +160,8 @@ class PenjualanController extends Controller
             $out = [
                 'message' => 'Barcode tidak terdaftar!',
                 'result' => [],
-                'status' => false
+                'status' => false,
+                'error_code' => 2
             ];
         }
 
@@ -310,7 +314,7 @@ class PenjualanController extends Controller
         }
 
         //Set variabel
-        $this->_setVariable('DO-X', $newpt, $pt_nama, $gudang, $dept_id, $dept_nama, $dept_area, $IdDo, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
+        $this->_setVariable('DO-X', $newpt, $pt_nama, $gudang, $dept_id, $dept_nama, $dept_area, $no_do, $username, $status, $ket); // Set variabel untuk memasukkan data barcode pellet det, ketika update barcode pellet
 
         DB::beginTransaction();
 
@@ -338,5 +342,69 @@ class PenjualanController extends Controller
         }
         return response()->json($out, $code, [], JSON_NUMERIC_CHECK);
     }
+
+    public function checkFinalize($notrans)
+    {
+        $draf = Penjualan::where('No_DO', $notrans)->whereNotNull('OTORISASI_PPIC_USER')->first();
+
+        if ($draf) {
+            $out = [
+                'message' => 'DO sudah di-finalize, kembali ke menu utama untuk refresh!',
+                'status' => true
+            ];
+        } else {
+            $out = [
+                'message' => 'success',
+                'status' => false
+            ];
+        }
+
+        return response()->json($out, 200, [], JSON_NUMERIC_CHECK);
+    }
+
+    public function delete($notrans)
+    {
+        $resbarcode = DB::table('erasystem_2012.barcode_pellet')
+            ->join('erasystem_2012.barcode_pellet_det', function ($join) {
+                $join->on('barcode_pellet.BARCODE', '=', 'barcode_pellet_det.BARCODE')->on('barcode_pellet.LAST_UPDATE', '=', 'barcode_pellet_det.TANGGAL');
+            })
+            ->whereRaw('barcode_pellet_det.STATUS = ? AND barcode_pellet_det.NOTRANS = ? AND barcode_pellet.AKTIF = ?', ['KIRIM', $notrans, '1'])
+            ->selectRaw('barcode_pellet_det.BARCODE')
+            ->get();
+
+        $barcode = $resbarcode->toArray();
+        $listbarcode = array_column($barcode, 'BARCODE');
+        $datetime = date('Y-m-d H:i:s');
+
+        DB::beginTransaction();
+
+        try {
+
+            $update = Penjualan::where('No_DO', $notrans)->update([
+                'No_DO' => null,
+                'NoKen' => null
+            ]);
+            DB::statement(DB::raw("SET @AKSI = 'HAPUS'"));
+            DB::table('erasystem_2012.barcode_pellet')->whereIn('BARCODE', $listbarcode)->update(['LAST_UPDATE' => $datetime]);
+
+            $out = [
+                'message' => 'Hapus sukses',
+                'code' => 200,
+            ];
+            DB::commit();
+
+        } catch (QueryException $e) {
+
+            $out = [
+                'message' => 'Hapus gagal: ' . '[' . $e->errorInfo[1] . '] ' . $e->errorInfo[2],
+                'code' => 500,
+            ];
+            DB::rollBack();
+
+        }
+
+        return response()->json($out, $out['code']);
+    }
+
 
 }
