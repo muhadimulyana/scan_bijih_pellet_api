@@ -65,7 +65,7 @@ class PenjualanController extends Controller
     {
         $kocab = urldecode($kocab);
         $result = DB::table('erasystem_2012.jp_pellet as A')
-            ->selectRaw("A.ID_JADWAL, A.ID_SO, C.NOPOL, A.PT_ID, A.GUDANG, B.NoTrans AS NOTRANS, (SELECT SUM(Jml) FROM erasystem_2012.det_bpb_retur WHERE REPLACE(Notrans_BPB, '.B01', '') = B.NoTrans) AS TOTAL_KG")
+            ->selectRaw("A.ID_JADWAL, A.ID_SO, C.NOPOL, A.PT_ID, A.GUDANG, B.NoTrans AS NOTRANS, (SELECT SUM(Jml) FROM erasystem_2012.det_bpb_retur WHERE REPLACE(Notrans_BPB, '.B01', '') = B.NoTrans) AS TOTAL_KG, (SELECT SUM(Jml) FROM erasystem_2012.det_bpb_retur WHERE REPLACE(Notrans_BPB, '.B01', '') = B.NoTrans) / 25 AS TOTAL_KARUNG")
             ->join('erasystem_2012.jp_pellet_det as C', 'A.ID_JADWAL', '=', 'C.ID_JADWAL')
             ->join('erasystem_2012.daf_pengeluaran_barang as B', 'A.ID_SO', '=', 'B.NO_SO')
             ->whereRaw('A.TARIK_DO = ? AND A.GUDANG = ?', [0, $kocab])
@@ -404,6 +404,25 @@ class PenjualanController extends Controller
         }
 
         return response()->json($out, $out['code']);
+    }
+
+    public function getTotalPellet($pellet, $notrans)
+    {
+        $result = DB::table('erasystem_2012.det_bpb_retur')->select('Jml as TOTAL_PELLET')->where('KoHan', $pellet)->where('NoTrans_BPB', $notrans . '.B01')->first();
+
+        if($result) {
+            $out = [
+                'message' => 'success',
+                'result' => $result->TOTAL_PELLET / 25
+            ];
+        } else {
+            $out = [
+                'message' => 'Kode pellet tidak ditemukan',
+                'result' => 0
+            ];
+        }
+
+        return response()->json($out, 200, [], JSON_NUMERIC_CHECK);
     }
 
 

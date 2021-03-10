@@ -154,5 +154,6 @@ $router->group(['prefix' => 'penjualan'], function () use ($router) {
     $router->post('/update', 'PenjualanController@update');
     $router->delete('/delete/{notrans:[A-Za-z0-9/]+}', 'PenjualanController@delete');
     $router->get('/sudahFinalize/{notrans:[A-Za-z0-9/]+}', 'PenjualanController@checkFinalize');
+    $router->get('/getTotalKarung/{pellet:[A-Za-z0-9_\-]+}/{notrans:[A-Za-z0-9/]+}', 'PenjualanController@getTotalPellet');
     //$router->get('/deptScan', 'DepartemenController@getdeptScan');
 });
