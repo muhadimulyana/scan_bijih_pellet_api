@@ -309,7 +309,9 @@ class PenjualanController extends Controller
                     array_push($add_barcode, $rec['BARCODE']);
                 }
             } else {
-                array_push($del_barcode, $rec['BARCODE']);
+                if(in_array($rec['BARCODE'], $old_barcode)) {
+                    array_push($del_barcode, $rec['BARCODE']);
+                }
             }
         }
 
